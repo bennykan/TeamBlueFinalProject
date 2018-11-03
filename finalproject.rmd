@@ -1,0 +1,230 @@
+---
+title: "Clustering Algorithm for Unupervised Learning - Credit Card Client Anomaly Analysis"
+author: "Tyler Blakeley, Benjamin Kan, Mohammad Islam, Avijeet Singh"
+date: "October 29 2018"
+output:
+  html_document:
+    fig_height: 4.5
+    fig_width: 7
+    highlight: tango
+    number_sections: yes
+    theme: readable
+    toc: yes
+  pdf_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
+```
+
+# Business Understanding
+
+We work at the Retail Credit Risk Analytics department at the Bank of Taiwan. Recently, there have been increasing credit card debt defaults in our bank. Senior Management would like our department to develop a machine learning algorithm to find anomalies in the data that we hope will show early warning signs of default. This will allow the Retail Credit Risk and Collections departments to act early by monitoring these cleints' credit card limits to find ways to minimize the losses. We would also like to find out which demographics are in the anomaly group which would indicate high susceptiblility of defaults. The Management instructed us to use data from the third parties to build the algorithms as proof-of-concepts before we use our own data. They would also like us to build a user-friendly app to allow them to load in the dataset and identify clients that are in the anomaly group which may indicate high risk of defaulting on their credit card debts.        
+
+# Data Understanding
+
+## Data Source and Collection
+
+We sourced the third party credit card data from Kaggle (https://www.kaggle.com/uciml/default-of-credit-card-clients-dataset). This dataset contains information on default payments, demographic factors, credit data, history of payment, and bill statements of credit card clients in Taiwan from April 2005 to September 2005. As mentioned above, the goal is to identify a group of customers who exhibit abnormal behaviour comparing with the rest of the data. We assume that abnormal credit behaviour would lead to high default risks. Note that the dataset has already been anonymized to protect the customers' identities.
+
+## Data Description
+
+In the dataset, there are 25 variables:
+
+Variable Name              | Description
+---------------------------|--------------------------------------------------------------------------------
+ID                         | ID of each client
+LIMIT_BAL                  | Amount of given credit in NT dollars (includes individual and                                               | family/supplementary credit
+SEX                        | Gender (1=male, 2=female)
+EDUCATION                  | (1=graduate school, 2=university, 3=high school, 4=others, 5=unknown, 6=unknown)
+MARRIAGE                   | Marital status (1=married, 2=single, 3=others)
+AGE                        | Age in years
+PAY_0                      | Repayment status in September, 2005 (-1=pay duly, 1=payment delay for one month,                            | 2=payment delay for two months, ... 8=payment delay for eight months, 9=payment                             | delay for nine months and above)                 
+PAY_2                      | Repayment status in August, 2005 (scale same as above)
+PAY_3                      | Repayment status in July, 2005 (scale same as above)
+PAY_4                      | Repayment status in June, 2005 (scale same as above)
+PAY_5                      | Repayment status in May, 2005 (scale same as above)
+PAY_6                      | Repayment status in April, 2005 (scale same as above)
+BILL_AMT1                  | Amount of bill statement in September, 2005 (NT dollar)
+BILL_AMT2                  | Amount of bill statement in August, 2005 (NT dollar)
+BILL_AMT3                  | Amount of bill statement in July, 2005 (NT dollar)
+BILL_AMT4                  | Amount of bill statement in June, 2005 (NT dollar)
+BILL_AMT5                  | Amount of bill statement in May, 2005 (NT dollar)
+BILL_AMT6                  | Amount of bill statement in April, 2005 (NT dollar)
+PAY_AMT1                   | Amount of previous payment in September, 2005 (NT dollar)
+PAY_AMT2                   | Amount of previous payment in August, 2005 (NT dollar)
+PAY_AMT3                   | Amount of previous payment in July, 2005 (NT dollar)
+PAY_AMT4                   | Amount of previous payment in June, 2005 (NT dollar)
+PAY_AMT5                   | Amount of previous payment in May, 2005 (NT dollar)
+PAY_AMT6                   | Amount of previous payment in April, 2005 (NT dollar)
+default.payment.next.month | Default payment (1=yes, 0=no)
+
+## Data Exploration
+
+### Load Packages
+
+```{r, message=FALSE,warning=FALSE}
+#import packages;
+library(dplyr)
+library(reshape2)
+library(ggplot2)
+library(Hmisc)
+library(corrplot)
+library(mice)
+library(VIM)
+library(pROC)
+library(caret)
+library(corrgram)
+library(GGally)
+library(ggthemes) 
+library(DMwR)
+library(gridExtra)
+library(rattle)
+library(readxl)
+library(cluster)
+library(sqldf)
+library(knitr)
+```
+
+### Load Datasets
+
+Now that the packages are loaded, we can load in the dataset. Note that we converted the dataset file from the Excel to csv format.
+
+
+```{r, message=FALSE,warning=FALSE}
+
+#Added " -  " as 
+
+data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
+
+
+
+```
+
+#Check current variable type
+```{r, message=FALSE,warning=FALSE}
+str(data)
+
+#Change ZIP.CODE to categorical
+
+data$ZIP.CODE <- as.factor(data$ZIP.CODE)
+
+#Change Sale.DATE to date 
+
+data$SALE.DATE <- as.Date(data$SALE.DATE)
+
+str(data)
+
+```
+
+```{r, message=FALSE,warning=FALSE}
+
+summary(data)
+
+
+
+#Remove sale price of 0 and NA's
+data <- data[data$SALE.PRICE != 0,]
+data <- data[!is.na(data$SALE.PRICE),]
+
+#Remove any house built before 1776 america
+#data <- data[data$YEAR.BUILT>=1776,]
+
+
+
+#Remove outliers for sale.Price
+
+sp_plot = ggplot(data, aes(data$SALE.PRICE)) + geom_histogram(binwidth = 10000,colour="black",fill="white")+  scale_x_continuous("Sale.Price")+scale_y_continuous("Observations Count")+labs(title = "Histogram")
+sp_plot_2 = ggplot(data, aes(,data$SALE.PRICE)) + geom_boxplot(fill = "white")+  scale_y_continuous("Sale.Price")+scale_x_continuous("")+labs(title="Boxplot")
+sp_plot_2
+grid.arrange(sp_plot,sp_plot_2,nrow =1,top="SALE.PRICE DISTRIBUTION AND OUTLIERS" )
+
+
+
+data_rm_outliers = data;
+
+remove_outliers <- function(x,lbound) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
+  H <- 1.5 * IQR(x, na.rm = TRUE)
+  y=x
+  y[x < (qnt[1] - H/lbound)] = -999999
+  y[x > (qnt[2] + H)] = -999999
+  y
+  
+}
+
+
+data$SALE.PRICE <- remove_outliers(data_rm_outliers$SALE.PRICE,4)
+
+hist(test)
+summary(test[test!=-999999])
+table(test)
+
+data_out <- data[data$SALE.PRICE!=-999999,]
+
+
+
+
+
+```
+
+
+
+
+
+```{r, message=FALSE,warning=FALSE}
+
+data_out$GROSS.SQUARE.FEET[data_out$GROSS.SQUARE.FEET == 0] <- NA
+
+data_out$YEAR.BUILT[data_out$YEAR.BUILT <= 1776] <- NA
+
+summary(data_out)
+
+
+```
+
+
+```{r, message=FALSE,warning=FALSE}
+#Investigate Land square feet
+
+table(data[data$LAND.SQUARE.FEET == 0,c('LAND.SQUARE.FEET','BUILDING.CLASS.CATEGORY')])
+
+
+
+
+```
+
+
+```{r, message=FALSE,warning=FALSE}
+
+#Analyzed Missing values
+
+aggr_plot = aggr(data_out, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data_out), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+
+
+#remove easement columns all NA's
+data_out <- data_out[,!colnames(data_out) %in% c('EASE.MENT','X')]
+
+summary(data_out)
+
+
+#Apply KNN
+
+knn_input=as.data.frame(data_out[, !names(data_out) %in% c("SALE.PRICE")])
+#Confrim structure has not changed except for lost of target variable
+str(knn_input)
+
+#Allow for reproducable results
+set.seed(847593)
+
+#Run KNN imputation, use built in scacle = T to rescale all data.  
+knnOutput = knnImputation(knn_input, k=7,scale=T)
+
+#Check if all missing values have been imputeted
+summary(knnOutput)
+
+
+
+
+```
