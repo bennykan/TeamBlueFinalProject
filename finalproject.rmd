@@ -98,6 +98,11 @@ Now that the packages are loaded, we can load in the dataset. Note that we conve
 
 data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
 
+data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
 
 
 ```
@@ -105,6 +110,10 @@ data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  ")
 #Check current variable type
 ```{r, message=FALSE,warning=FALSE}
 str(data)
+
+#Change the Borough to Categorical
+
+data$BOROUGH <- as.factor(data$BOROUGH)
 
 #Change ZIP.CODE to categorical
 
@@ -135,10 +144,10 @@ data <- data[!is.na(data$SALE.PRICE),]
 
 #Remove outliers for sale.Price
 
-sp_plot = ggplot(data, aes(data$SALE.PRICE)) + geom_histogram(binwidth = 10000,colour="black",fill="white")+  scale_x_continuous("Sale.Price")+scale_y_continuous("Observations Count")+labs(title = "Histogram")
-sp_plot_2 = ggplot(data, aes(,data$SALE.PRICE)) + geom_boxplot(fill = "white")+  scale_y_continuous("Sale.Price")+scale_x_continuous("")+labs(title="Boxplot")
-sp_plot_2
-grid.arrange(sp_plot,sp_plot_2,nrow =1,top="SALE.PRICE DISTRIBUTION AND OUTLIERS" )
+# sp_plot = ggplot(data, aes(data$SALE.PRICE)) + geom_histogram(binwidth = 10000,colour="black",fill="white")+  scale_x_continuous("Sale.Price")+scale_y_continuous("Observations Count")+labs(title = "Histogram")
+# sp_plot_2 = ggplot(data, aes(,data$SALE.PRICE)) + geom_boxplot(fill = "white")+  scale_y_continuous("Sale.Price")+scale_x_continuous("")+labs(title="Boxplot")
+# sp_plot_2
+# grid.arrange(sp_plot,sp_plot_2,nrow =1,top="SALE.PRICE DISTRIBUTION AND OUTLIERS" )
 
 
 
@@ -156,10 +165,6 @@ remove_outliers <- function(x,lbound) {
 
 
 data$SALE.PRICE <- remove_outliers(data_rm_outliers$SALE.PRICE,4)
-
-hist(test)
-summary(test[test!=-999999])
-table(test)
 
 data_out <- data[data$SALE.PRICE!=-999999,]
 
@@ -203,27 +208,56 @@ table(data[data$LAND.SQUARE.FEET == 0,c('LAND.SQUARE.FEET','BUILDING.CLASS.CATEG
 aggr_plot = aggr(data_out, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data_out), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
 
 
-#remove easement columns all NA's
-data_out <- data_out[,!colnames(data_out) %in% c('EASE.MENT','X')]
+#remove easement columns all NA's and TOTAL.UNITS
+data_out <- data_out[,!colnames(data_out) %in% c('EASE.MENT','X','TOTAL.UNITS')]
 
 summary(data_out)
 
+imputed_values <- function(x,borough) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
+  H <- 1.5 * IQR(x, na.rm = TRUE)
+  y=x
+  y[x < (qnt[1] - H/lbound)] = -999999
+  y[x > (qnt[2] + H)] = -999999
+  y
+  
+}
+
+
+
+borough_list <- c('Manhattan','Queens','Bronx','Brooklyn','Staten Island')
+
+for (i in borough_list) {
+Gross <- median(data_out$GROSS.SQUARE.FEET[data_out$BOROUGH==i & !is.na(data_out$GROSS.SQUARE.FEET)])
+data_out$GROSS.SQUARE.FEET[data_out$BOROUGH==i & is.na(data_out$GROSS.SQUARE.FEET)] <- Gross
+
+Land <- median(data_out$LAND.SQUARE.FEET[data_out$BOROUGH==i & !is.na(data_out$LAND.SQUARE.FEET)])
+data_out$LAND.SQUARE.FEET[data_out$BOROUGH==i & is.na(data_out$LAND.SQUARE.FEET)] <- Land
+
+Year_Built <- median(data_out$YEAR.BUILT[data_out$BOROUGH==i & !is.na(data_out$YEAR.BUILT)])
+data_out$YEAR.BUILT[data_out$BOROUGH==i & is.na(data_out$YEAR.BUILT)] <- Year_Built
+}
+summary(data_out$GROSS.SQUARE.FEET)
+summary(data_out$LAND.SQUARE.FEET)
+summary(data_out$YEAR.BUILT)
+
+summary(data_out)
 
 #Apply KNN
-
-knn_input=as.data.frame(data_out[, !names(data_out) %in% c("SALE.PRICE")])
-#Confrim structure has not changed except for lost of target variable
-str(knn_input)
-
-#Allow for reproducable results
-set.seed(847593)
-
-#Run KNN imputation, use built in scacle = T to rescale all data.  
-knnOutput = knnImputation(knn_input, k=7,scale=T)
-
-#Check if all missing values have been imputeted
-summary(knnOutput)
-
+ 
+ # knn_input=as.data.frame(data_out[, !names(data_out) %in% c("SALE.PRICE")])
+ # #Confrim structure has not changed except for lost of target variable
+ # str(knn_input)
+# 
+# #Allow for reproducable results
+# set.seed(847593)
+# 
+# #Run KNN imputation, use built in scacle = T to rescale all data.  
+# knnOutput = knnImputation(knn_input, k=7,scale=T)
+# 
+# #Check if all missing values have been imputeted
+# summary(knnOutput)
+# 
 
 
 
