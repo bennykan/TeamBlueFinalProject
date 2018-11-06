@@ -1,7 +1,7 @@
 ---
-title: "Clustering Algorithm for Unupervised Learning - Credit Card Client Anomaly Analysis"
+title: "Property Value Prediction Using Clustering and Linear Regression - Automated Valuation Model (AVM)"
 author: "Tyler Blakeley, Benjamin Kan, Mohammad Islam, Avijeet Singh"
-date: "October 29 2018"
+date: "November 16 2018"
 output:
   html_document:
     fig_height: 4.5
@@ -20,45 +20,41 @@ knitr::opts_chunk$set(echo = TRUE, warning = FALSE)
 
 # Business Understanding
 
-We work at the Retail Credit Risk Analytics department at the Bank of Taiwan. Recently, there have been increasing credit card debt defaults in our bank. Senior Management would like our department to develop a machine learning algorithm to find anomalies in the data that we hope will show early warning signs of default. This will allow the Retail Credit Risk and Collections departments to act early by monitoring these cleints' credit card limits to find ways to minimize the losses. We would also like to find out which demographics are in the anomaly group which would indicate high susceptiblility of defaults. The Management instructed us to use data from the third parties to build the algorithms as proof-of-concepts before we use our own data. They would also like us to build a user-friendly app to allow them to load in the dataset and identify clients that are in the anomaly group which may indicate high risk of defaulting on their credit card debts.        
+We are the owners of a start-up company based in New York City who specializes in appraisal management and national real estate information, servicing major banks, lenders, mortgage insurers, credit unions, and independent mortgage brokers. Currently, most of the real estate transactions including mortgage loans and commercial property acquisitions rely on appraisers to estimate the property values. However, this could take at least days to complete, which the mortgage lenders and brokers think takes too long given the hyper competitive nature of the real estate industry. Moreover, the property valuation process is at times manual without comprehensive substantiation of how the appraisers come up with the values. Therefore, we reckon that the real estate appraisal industry is ripe for disruption. Our product is a property value prediction model which can be used by mortgage lenders and brokers to value the properties within minutes.  It is a national solution built using highly advanced machine learning algorithms, which can take into account extensive and diverse data sets, learn from the data in their environment, as well as incorporate new and different situations, as the market evolves.           
 
 # Data Understanding
 
 ## Data Source and Collection
 
-We sourced the third party credit card data from Kaggle (https://www.kaggle.com/uciml/default-of-credit-card-clients-dataset). This dataset contains information on default payments, demographic factors, credit data, history of payment, and bill statements of credit card clients in Taiwan from April 2005 to September 2005. As mentioned above, the goal is to identify a group of customers who exhibit abnormal behaviour comparing with the rest of the data. We assume that abnormal credit behaviour would lead to high default risks. Note that the dataset has already been anonymized to protect the customers' identities.
+We sourced the NYC property sales data from Kaggle (https://www.kaggle.com/new-york-city/nyc-property-sales/home). This dataset contains the properties sold in NYC over a 12-month period from September 2016 to September 2017. The dataset contains 22 attributes including the precise property locations (Borough, Neighborhood, Block, Zip Code and Address), building class, property types (Residential or Commercial), property size and tax class. The dataset consists of about 84.5K of property sale transactions.
 
 ## Data Description
 
-In the dataset, there are 25 variables:
+In the dataset, there are 22 variables. A detailed description of these variables can be found at https://www1.nyc.gov/assets/finance/downloads/pdf/07pdf/glossary_rsf071607.pdf
 
-Variable Name              | Description
----------------------------|--------------------------------------------------------------------------------
-ID                         | ID of each client
-LIMIT_BAL                  | Amount of given credit in NT dollars (includes individual and                                               | family/supplementary credit
-SEX                        | Gender (1=male, 2=female)
-EDUCATION                  | (1=graduate school, 2=university, 3=high school, 4=others, 5=unknown, 6=unknown)
-MARRIAGE                   | Marital status (1=married, 2=single, 3=others)
-AGE                        | Age in years
-PAY_0                      | Repayment status in September, 2005 (-1=pay duly, 1=payment delay for one month,                            | 2=payment delay for two months, ... 8=payment delay for eight months, 9=payment                             | delay for nine months and above)                 
-PAY_2                      | Repayment status in August, 2005 (scale same as above)
-PAY_3                      | Repayment status in July, 2005 (scale same as above)
-PAY_4                      | Repayment status in June, 2005 (scale same as above)
-PAY_5                      | Repayment status in May, 2005 (scale same as above)
-PAY_6                      | Repayment status in April, 2005 (scale same as above)
-BILL_AMT1                  | Amount of bill statement in September, 2005 (NT dollar)
-BILL_AMT2                  | Amount of bill statement in August, 2005 (NT dollar)
-BILL_AMT3                  | Amount of bill statement in July, 2005 (NT dollar)
-BILL_AMT4                  | Amount of bill statement in June, 2005 (NT dollar)
-BILL_AMT5                  | Amount of bill statement in May, 2005 (NT dollar)
-BILL_AMT6                  | Amount of bill statement in April, 2005 (NT dollar)
-PAY_AMT1                   | Amount of previous payment in September, 2005 (NT dollar)
-PAY_AMT2                   | Amount of previous payment in August, 2005 (NT dollar)
-PAY_AMT3                   | Amount of previous payment in July, 2005 (NT dollar)
-PAY_AMT4                   | Amount of previous payment in June, 2005 (NT dollar)
-PAY_AMT5                   | Amount of previous payment in May, 2005 (NT dollar)
-PAY_AMT6                   | Amount of previous payment in April, 2005 (NT dollar)
-default.payment.next.month | Default payment (1=yes, 0=no)
+Variable Name                   | Description
+--------------------------------|---------------------------------------------------------------------------
+ #                              | ID of the property
+BOROUGH                         | The name of the borough in which the property is located                    NEIGHBORHOOD                    | Neighborhood name in the course of valuing properties
+BUILDING CLASS CATEGORY         | Building class descriptions
+TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                    | primarily residential (Co-ops and condos) 3: Property with equipment owned                                  | by a gas, telephone or electric company; 4: All other properties not                                        | included  
+BLOCK                           | Sub-division of the borough on which the real properties are located
+LOT                             | Subdivision of a block and represents the property unique location     
+EASEMENT                        | A right which allows an entity to make limited use of another's real                                        | property
+BUILDING CLASS AT PRESENT       | Building Code. Details can be found at
+                                | https://www1.nyc.gov/assets/finance/jump/hlpbldgcode.html
+ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                      | include the apartment number
+ZIP CODE                        | The property's postal code
+RESIDENTIAL UNITS               | The number of residential units at the listed property
+COMMERCIAL UNITS                | The number of commercial units at the listed property
+LAND SQUARE FEET                | The land area of the property listed in square feet
+GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                 | surfaces of the outside walls of the building
+YEAR BUILT                      | Year the structure on the property was built
+BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                   | use. The first position of the Building Class is a letter that is used to                                   | describe a general class of properties
+SALES PRICE                     | Price paid for the property
+SALE DATE                       | Date of property sold
+
+Note: $0 Sales Price: A $0 sale indicates that there was a transfer of ownership without a cash consideration. There can be a number of reasons for a $0 sale including transfers of ownership from parents to children. 
 
 ## Data Exploration
 
