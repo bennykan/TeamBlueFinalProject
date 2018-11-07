@@ -90,18 +90,42 @@ Now that the packages are loaded, we can load in the dataset. Note that we conve
 
 ```{r, message=FALSE,warning=FALSE}
 
-#Added " -  " as 
-
 data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
-
-data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
-
-
 ```
+
+Now let us see how our dataset looks like:
+
+```{r, message=FALSE,warning=FALSE}
+str(data)
+```
+
+From the above we can see that 1st column has only the observation numbers and is not necessary for our data exploration so i will remove it for the time being and make a new dataset.
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data<-as_data_frame(data[,-1])
+```
+
+Now we will introduce a new column which will only give me the BUILDING CLASS CATEGORY i.e "walkup aprartments","elevator apartments" etc. and not the numbers in front of them as they are not needed.
+First i will remove the first three characters and check if it worked.
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data$BUILDING.CLASS.CATEGORY<-substring(nyc_data$BUILDING.CLASS.CATEGORY,3)
+head(nyc_data$BUILDING.CLASS.CATEGORY)
+```
+
+Instead of the numbers in the BOROUGH column we will put in the names:
+
+```{r, message=FALSE,warning=FALSE}
+
+nyc_data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
+```
+
+We will remove the column "EASE-MENT" as it has null value throughout:
+
 
 #Check current variable type
 ```{r, message=FALSE,warning=FALSE}
