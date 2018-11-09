@@ -153,17 +153,74 @@ Let us finally check for duplicates and remove if there are any:
 nyc_data %>% filter(duplicated(nyc_data) == TRUE) %>% nrow()
 ```
 
+
 Removing duplicates:
 
 ```{r, message=FALSE,warning=FALSE}
 nyc_data<-unique(nyc_data) 
 ```
 
+Getting rid of NAs in the Sale price data as we need to take mean of the sale price in our data analysis.
+```{r, message=FALSE,warning=FALSE}
+nyc_data <- nyc_data[!is.na(nyc_data$SALE.PRICE),]
+nyc_data <- nyc_data[nyc_data$SALE.PRICE != 0,]
+```
 ###Data Type conversions
 The original dataset has columns with types that are not suitable for analysis so we will convert them.
-The Boroughs,building class category,zipcode  are converted to factors  
+The Boroughs,building class category,zipcode,tax class at the time of sale  are converted to factors.
+Address,apartment number converted to chr.
+Land square feet,gross square feet,year to numeric.
+Sale date to date.
+
 ```{r, message=FALSE,warning=FALSE}
-fac<-c(1,3,10)
+fac<-c(1,3,10,17)
+nyc_data[fac]<-lapply(nyc_data[fac],factor)
+chr<-c(8,9)
+nyc_data[chr]<-lapply(nyc_data[chr],as.character)
+num<-c(14,15)
+nyc_data[num]<-lapply(nyc_data[num],as.numeric)
+dt<-c(20)
+nyc_data[dt]<-lapply(nyc_data[dt],as.Date)
+```
+
+No let us begin our data exploration.
+
+###Boroughs
+Let us see which borough recorded the the most property sales
+```{r, message=FALSE,warning=FALSE}
+p1 <- ggplot(data = nyc_data, aes(x = `BOROUGH`)) +
+  geom_bar() +
+  ggtitle("In-Demand Borough in NYC") +
+  scale_y_continuous("# of Property Sales", labels = scales::comma) +
+  scale_x_discrete("Borough")
+
+p2 <- ggplot(data = nyc_data, aes(x = `BOROUGH`, y = mean(`SALE.PRICE`))) +
+  geom_bar(stat = "identity") +
+  ggtitle("Most Expensive Borough in NYC", subtitle = "Avg. Property Sale Price in NYC") +
+  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
+  scale_x_discrete("Borough")
+
+grid.arrange(p1, p2, ncol = 1)
+```
+
+The plots show that queens had the most number of property sales followed by brooklyn. The average sale price of a property in queens is the highest followed by brooklyn.
+
+###Neigborhoods
+Now that we have explored the sale price according to the boroughs let us check for the most expensive neighborhoods.
+We will only take the top ten neigborhoods as it will be difficult to plot all the neighborhoods.
+```{r, message=FALSE,warning=FALSE}
+dfnyc<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$NEIGHBORHOOD))
+names(dfnyc) <- c('BOROUGH','NEIGHBORHOOD', 'Freq')
+dfnyc <- dfnyc %>% arrange(desc(Freq)) %>% head(10)
+p3 <- ggplot(dfnyc, aes(x = 'NEIGHBORHOOD', y = 'Freq', fill = 'BOROUGH')) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Most-in demand Neighborhood in NYC", subtitle = "Top Neighborhoods by Number") +
+  theme(legend.position = "bottom") +
+  scale_y_continuous("# of Sales", labels = scales::comma) +
+  scale_x_discrete("Neighborhood") 
+
+p3
 ```
 #Check current variable type
 ```{r, message=FALSE,warning=FALSE}
