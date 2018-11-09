@@ -89,7 +89,6 @@ Now that the packages are loaded, we can load in the dataset. Note that we conve
 
 
 ```{r, message=FALSE,warning=FALSE}
-
 data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
 ```
 
@@ -126,7 +125,42 @@ nyc_data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
 
 We will remove the column "EASE-MENT" as it has null value throughout:
 
+```{r, message=FALSE,warning=FALSE}
+nyc_data$EASE.MENT<-NULL
+```
 
+Now let us introduce a new column "Building Age" as it is much simpler to understand.
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data$BUILDING.AGE<- 2018-nyc_data$YEAR.BUILT
+```
+
+From the glossary of terms we find out that there are only 4 types of tax class i.e 1,2,3,4 but in the dataset we observed that there are 11 different levels with the types further divided into 1a,1b,2a,2b etc. So we will remove the sub classes and just keep 4 levels of Tax as it will make our analysis easier.
+
+```{r, message=FALSE,warning=FALSE}
+levels(nyc_data$TAX.CLASS.AT.PRESENT)[levels(nyc_data$TAX.CLASS.AT.PRESENT=="1A")]<-"1"
+
+                                      
+str(nyc_data$TAX.CLASS.AT.PRESENT)
+```
+
+
+
+Let us finally check for duplicates and remove if there are any:
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data %>% filter(duplicated(nyc_data) == TRUE) %>% nrow()
+```
+
+Removing duplicates:
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data<-unique(nyc_data) 
+```
+
+###Data Type conversions
+The original dataset has columns with types that are not suitable for analysis so we will convert them.
+The Boroughs,building class category, and tax class are converted to factors  
 #Check current variable type
 ```{r, message=FALSE,warning=FALSE}
 str(data)
