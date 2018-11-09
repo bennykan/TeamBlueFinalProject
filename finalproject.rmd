@@ -263,22 +263,352 @@ summary(data_out$YEAR.BUILT)
 
 summary(data_out)
 
-#Apply KNN
- 
- # knn_input=as.data.frame(data_out[, !names(data_out) %in% c("SALE.PRICE")])
- # #Confrim structure has not changed except for lost of target variable
- # str(knn_input)
-# 
-# #Allow for reproducable results
-# set.seed(847593)
-# 
-# #Run KNN imputation, use built in scacle = T to rescale all data.  
-# knnOutput = knnImputation(knn_input, k=7,scale=T)
-# 
-# #Check if all missing values have been imputeted
-# summary(knnOutput)
-# 
+
+
+```
+
+##Filter For Residential Data
+
+```{r, message=FALSE,warning=FALSE}
+
+
+#Remove any home with facilities in its class
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACILITIES',]
+
+#Remove any commerical
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'COMMERCIAL',]
+
+#Remove office
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OFFICE',]
+
+
+#Remove HOTEL
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'HOTEL',]
+
+#Remove Vacant Land
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'VACANT LAND',]
+
+#Remove Other
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OTHER',]
+
+#Remove PARK
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'PARK',]
+
+#Remove WAREHOUSE
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'WAREHOUSE',]
+
+#Remove STORE
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'STORE',]
+
+#Remove FACTORY
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACTOR',]
+
+
+#Remove ASYLUM
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'ASYLUM',]
+
+#Remove RENTAL
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'RENTAL',]
+
+
+data_out$BUILDING.CLASS.CATEGORY <- as.character(data_out$BUILDING.CLASS.CATEGORY)
+data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'CONDO', "CONDO",data_out$BUILDING.CLASS.CATEGORY)
+data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'COOP', "COOP",data_out$BUILDING.CLASS.CATEGORY)
+
+data_out$BUILDING.CLASS.CATEGORY <- as.factor(data_out$BUILDING.CLASS.CATEGORY)
+
+```
+
+
+#Modelling
+
+
+##Encoding Categorical Variables
+
+To Encode the categorical variables we chose to replace each level of each variable with the average SALE.PRICE.
+
+
+```{r, message=FALSE,warning=FALSE}
+encod_Categories <- function (x,y) {
+  z = y 
+  for (i in levels(x)) {
+    encod_value <- median(y[x==i])
+    
+    #print(NROW(y[x==i]))
+    #print(encod_value)
+    z[x==i] <-  encod_value
+    #print(NROW(z[x==i]))
+    #print(table(z[x==i] ))
+    }
+  z
+  
+}
+
+#Find all factor variables to encod
+
+is.fact <- cbind('BOROUGH','NEIGHBORHOOD','BUILDING.CLASS.CATEGORY','TAX.CLASS.AT.PRESENT','ZIP.CODE','BUILDING.CLASS.AT.TIME.OF.SALE')
+
+encod_data <- data_out[,is.fact]
+for (i in 1:NCOL(encod_data)){
+  encod_data[,i] <- encod_Categories(encod_data[,i],data_out$SALE.PRICE)
+  
+}
+
+#Confirm all variables are numeric
+str(encod_data)
+
+```
+
+
+
+##Create dataset for modelling
+
+Now that we have all the categorical variables converted to numeric,we can add in the date and other numeric columns
+
+```{r, message=FALSE,warning=FALSE}
+
+is.num <- sapply(data_out, is.numeric)
+
+
+data_model <- (data.frame((data_out[,is.num]),encod_data,data_out$SALE.DATE))
 
 
 
 ```
+
+##Look at Correalation
+
+```{r, message=FALSE,warning=FALSE}
+cor_result=rcorr(as.matrix(data_model[,1:15]))
+
+
+# ++++++++++++++++++++++++++++
+# flattenCorrMatrix - makes it easier to read (in my opinion)
+# ++++++++++++++++++++++++++++
+flattenCorrMatrix <- function(cormat, pmat) {
+  ut <- upper.tri(cormat)
+  data.frame(
+    row = rownames(cormat)[row(cormat)[ut]],
+    column = rownames(cormat)[col(cormat)[ut]],
+    cor  =(cormat)[ut],
+    p = pmat[ut]
+  )
+}
+
+#Simple method to flatten (if that how you want to look at it)
+cor_result_flat = flattenCorrMatrix(cor_result$r, cor_result$P)
+cor_result_flat
+
+
+
+```
+
+
+
+
+## Split into Training & Test Sets
+
+We split the data into 80% training data and 20% testing data, the data is balanced on the Borough variable to ensure each data is representative of the initial data set.
+
+```{r, message=FALSE,warning=FALSE}
+#set.seed(456292)
+
+#Create index to split data
+train_set <- createDataPartition(data_model$BOROUGH, p = 0.8, list = FALSE)
+
+
+
+#Create train and test data
+train_data <- data_model[train_set,]
+test_data <- data_model[-train_set,]
+
+
+```
+
+## Build Model 
+
+We decided to implement a linear regresion model.  With linear regression the goal is to identify a line that best first the data.  The line of best fit is the one which the prediction error is the least.
+
+```{r, message=FALSE,warning=FALSE}
+#Find Optimal Parameters for Decision Tree Model and reduce bias using cross validation
+folds=10
+
+fitControl <- trainControl(method="cv",number=folds)
+
+#Implement Decision Tree model 
+LM_model <- train(SALE.PRICE~., data=train_data, method="lm",tuneLength = 50,
+metric = "RMSE",
+trControl = fitControl)
+
+
+```
+
+We chose to run the linear regression intially on all of our variables.  We will now investigate if there is some variables we can remove that are of low signifiance.
+
+## Assess Model
+
+
+
+###variable Significance
+
+```{r, message=FALSE,warning=FALSE}
+
+summary(LM_model)
+
+#Can see TAX.CLASS.AT.PRESENT has high P value , will remove from next model
+
+LM_model <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+TAX.CLASS.AT.TIME.OF.SALE+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+BUILDING.CLASS.AT.TIME.OF.SALE+data_out.SALE.DATE , data=train_data, method="lm",tuneLength = 50,
+metric = "RMSE",
+trControl = fitControl)
+
+summary(LM_model$finalModel)
+
+
+
+
+print(LM_model)
+
+
+
+```
+### Accuracy of LM
+
+```{r, message=FALSE,warning=FALSE}
+
+# Predict Test results
+LM_model.pred <- predict(LM_model, test_data)
+
+actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=LM_model.pred )) 
+# Check Accuracy of Model 
+min_max_accuracy <- mean (apply(actuals_preds, 1, min) / apply(actuals_preds, 1, max))
+min_max_accuracy
+mape <- mean(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals) 
+mape
+
+#Within 10%
+Within10 <- ifelse(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals>0.1,0,1)
+
+basic_LM_Accuracy <- mean(Within10)
+
+basic_LM_Accuracy
+
+
+```
+
+The linear regression has an intial accuracy of `r ROUND(basic_LM_Accuracy,4) % ` within 10% of actual value.
+
+
+####Check Residual of Linear Model
+
+```{r, message=FALSE,warning=FALSE}
+plot(LM_model$finalModel)
+
+```
+
+### Linear Regression After Clustering
+
+We wanted to test if we could improve the accuracy of the linear regression by first clustering the data using K means and then create a linear regression model for each cluster.
+
+####Data Normalization
+
+Since the K-means algorithm using distance to find the nearest point we need to ensure all the variables are on the same range.  We do this by normalizing the data.
+
+```{r, message=FALSE,warning=FALSE}
+#exclude Date column for clustering
+
+df <- data.frame((data_out[,is.num]),encod_data)
+
+normalize = function(x) {
+  return ((x - min(x)) / (max(x) - min(x)))
+}
+
+df = as.data.frame(lapply(df, normalize))
+```
+
+####Finding Optimal Number of Clusters (K)
+
+Before we run the K Mean algorithm we need to find the optimal K clusters. To find the optimal number of clusters we used the Elbow method. The elbow method finds the optimal K value by running mulptiple K-Means for K from 1 to N and calculateing the Sum of Squared errors (SSE).  We then plot each SSE for each K, we then chose an optimal value of K such that it has a low SSE but further increase of K would make little improvement to the SSE. That K value would be the elbow point of the plot.
+
+```{r, message=FALSE,warning=FALSE}
+#Find Optimal K using Elbow method
+
+wssplot <- function(data, nc=15, seed=1234){
+  wss <- (nrow(data)-1)*sum(apply(data,2,var))
+  for (i in 2:nc){
+    set.seed(seed)
+    wss[i] <- sum(kmeans(data, centers=i, nstart=5)$withinss)}
+  plot(1:nc, wss, type="b", xlab="Number of Clusters",
+       ylab="Within groups sum of squares")
+  }
+
+wssplot(df, nc=10) 
+
+```
+
+Based on the Elbow method, we found the optimal number to be 6. Beyond 6, we see gradually decreasing improvements on the SSE.
+
+#### Building K-Means Model 
+
+We are now able to create the K means model, we are creating 4 clusters with the 4 corresponding centroids being randomly chosen 15 times.
+
+```{r, message=FALSE,warning=FALSE}
+
+set.seed(9897665)
+
+kmeans.result <- kmeans(df, centers=6, nstart=15, iter.max = 100)
+
+```
+
+#### Building LM model for each cluster
+
+We now build a linear regression model for each Cluster.
+
+```{r, message=FALSE,warning=FALSE}
+
+data_cluster <- data.frame(data_model,cluster=as.factor(kmeans.result$cluster))
+#create blank dataframe to hold all clsuters
+lmmodels_output <- data.frame(matrix(ncol = 5, nrow = 0))
+x <- c("ClusterNumber", "MinMAxAccuracy", "MAPE","Within10","NumberofRecords")
+colnames(lmmodels_output) <- x
+for (i in levels(data_cluster$cluster)){
+  train_set_c <- createDataPartition(data_cluster$BOROUGH[data_cluster$cluster==i], p = 0.8, list = FALSE)
+  #Create train and test data
+  train_data_c <- data_model[train_set_c,]
+  test_data_C <- data_model[-train_set_c,]
+  lmmodels <- train(SALE.PRICE~., data=train_data_c, method="lm",tuneLength = 50,
+metric = "RMSE",
+trControl = fitControl)
+  LM_model.pred <- predict(LM_model, test_data_C)
+
+  actuals_preds <- data.frame(cbind(actuals=test_data_C$SALE.PRICE, predicteds=LM_model.pred )) 
+  # Check Accuracy of Model 
+  min_max_accuracy <- mean (apply(actuals_preds, 1, min) / apply(actuals_preds, 1, max))
+  mape <- mean(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals) 
+  #Within 10%
+  Within10 <- ifelse(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals>0.1,0,1)
+  
+  current_output <- data.frame(ClusterNumber = i,MinMAxAccuracy = min_max_accuracy,MAPE = mape,Within10 = mean(Within10) ,NumberofRecords = NROW(train_data))
+  
+  lmmodels_output <- rbind(lmmodels_output,current_output)
+  
+  
+}
+
+#Find Weighting Scores
+
+
+lmmodels_output$WeightedWithin10 <- lmmodels_output$Within10 * lmmodels_output$NumberofRecords
+
+#Weight Within10 Accuracy
+Clustered_LM_Accuracy <- sum(lmmodels_output$WeightedWithin10) / sum(lmmodels_output$NumberofRecords)
+
+basic_LM_Accuracy
+Clustered_LM_Accuracy
+round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100
+
+
+```
+
+We can see that running the linear regression model on the individual clusters increased the accuracy by `r round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100` %.
+
+
