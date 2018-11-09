@@ -116,11 +116,12 @@ Instead of the numbers in the BOROUGH column we will put in the names:
 
 ```{r, message=FALSE,warning=FALSE}
 
-nyc_data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==1,'Manhattan',nyc_data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==2,'Bronx',nyc_data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==3,'Brooklyn',nyc_data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==4,'Queens',nyc_data$BOROUGH)
+nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==5,'Staten Island',nyc_data$BOROUGH)
+
 ```
 
 We will remove the column "EASE-MENT" as it has null value throughout:
@@ -160,7 +161,10 @@ nyc_data<-unique(nyc_data)
 
 ###Data Type conversions
 The original dataset has columns with types that are not suitable for analysis so we will convert them.
-The Boroughs,building class category, and tax class are converted to factors  
+The Boroughs,building class category,zipcode  are converted to factors  
+```{r, message=FALSE,warning=FALSE}
+fac<-c(1,3,10)
+```
 #Check current variable type
 ```{r, message=FALSE,warning=FALSE}
 str(data)
