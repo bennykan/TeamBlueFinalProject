@@ -35,7 +35,8 @@ In the dataset, there are 22 variables. A detailed description of these variable
 Variable Name                   | Description
 --------------------------------|---------------------------------------------------------------------------
  #                              | ID of the property
-BOROUGH                         | The name of the borough in which the property is located                    NEIGHBORHOOD                    | Neighborhood name in the course of valuing properties
+BOROUGH                         | The name of the borough in which the property is located                    
+NEIGHBORHOOD                    | Neighborhood name in the course of valuing properties
 BUILDING CLASS CATEGORY         | Building class descriptions
 TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                    | primarily residential (Co-ops and condos) 3: Property with equipment owned                                  | by a gas, telephone or electric company; 4: All other properties not                                        | included  
 BLOCK                           | Sub-division of the borough on which the real properties are located
@@ -43,7 +44,7 @@ LOT                             | Subdivision of a block and represents the prop
 EASEMENT                        | A right which allows an entity to make limited use of another's real                                        | property
 BUILDING CLASS AT PRESENT       | Building Code. Details can be found at
                                 | https://www1.nyc.gov/assets/finance/jump/hlpbldgcode.html
-ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                      | include the apartment number
+ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                               | include the apartment number
 ZIP CODE                        | The property's postal code
 RESIDENTIAL UNITS               | The number of residential units at the listed property
 COMMERCIAL UNITS                | The number of commercial units at the listed property
@@ -121,6 +122,16 @@ nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==2,'Bronx',nyc_data$BOROUGH)
 nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==3,'Brooklyn',nyc_data$BOROUGH)
 nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==4,'Queens',nyc_data$BOROUGH)
 nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==5,'Staten Island',nyc_data$BOROUGH)
+
+
+
+
+data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
+
 
 ```
 
@@ -552,7 +563,7 @@ summary(LM_model)
 
 #Can see TAX.CLASS.AT.PRESENT has high P value , will remove from next model
 
-LM_model <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+TAX.CLASS.AT.TIME.OF.SALE+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+BUILDING.CLASS.AT.TIME.OF.SALE+data_out.SALE.DATE , data=train_data, method="lm",tuneLength = 50,
+LM_model <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+data_out.SALE.DATE , data=train_data, method="lm",tuneLength = 50,
 metric = "RMSE",
 trControl = fitControl)
 
@@ -670,7 +681,7 @@ for (i in levels(data_cluster$cluster)){
   #Create train and test data
   train_data_c <- data_model[train_set_c,]
   test_data_C <- data_model[-train_set_c,]
-  lmmodels <- train(SALE.PRICE~., data=train_data_c, method="lm",tuneLength = 50,
+  lmmodels <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+data_out.SALE.DATE , data=train_data, method="lm",tuneLength = 50,
 metric = "RMSE",
 trControl = fitControl)
   LM_model.pred <- predict(LM_model, test_data_C)
