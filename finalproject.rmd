@@ -86,8 +86,7 @@ library(knitr)
 
 ### Load Datasets
 
-Now that the packages are loaded, we can load in the dataset. Note that we converted the dataset file from the Excel to csv format.
-
+Now that the packages are loaded, we can load in the dataset. 
 
 ```{r, message=FALSE,warning=FALSE}
 data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
