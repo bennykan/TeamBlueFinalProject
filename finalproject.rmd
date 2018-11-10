@@ -169,6 +169,8 @@ Removing duplicates:
 
 ```{r, message=FALSE,warning=FALSE}
 nyc_data<-unique(nyc_data) 
+
+data <- unique(data)
 ```
 
 Getting rid of NAs in the Sale price data as we need to take mean of the sale price in our data analysis.
@@ -509,6 +511,8 @@ for (i in 1:NCOL(encod_data)){
 
 #Confirm all variables are numeric
 str(encod_data)
+
+table(encod_data$BOROUGH,data_out$BOROUGH)
 
 ```
 
