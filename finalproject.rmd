@@ -209,18 +209,65 @@ The plots show that queens had the most number of property sales followed by bro
 Now that we have explored the sale price according to the boroughs let us check for the most expensive neighborhoods.
 We will only take the top ten neigborhoods as it will be difficult to plot all the neighborhoods.
 ```{r, message=FALSE,warning=FALSE}
-dfnyc<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$NEIGHBORHOOD))
-names(dfnyc) <- c('BOROUGH','NEIGHBORHOOD', 'Freq')
-dfnyc <- dfnyc %>% arrange(desc(Freq)) %>% head(10)
-p3 <- ggplot(dfnyc, aes(x = 'NEIGHBORHOOD', y = 'Freq', fill = 'BOROUGH')) +
+dfnyc1<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$NEIGHBORHOOD))
+names(dfnyc1) <- c('BOROUGH','NEIGHBORHOOD', 'Freq')
+dfnyc1 <- dfnyc1 %>% arrange(desc(Freq)) %>% head(10)
+p3<-ggplot(data = dfnyc1,aes(x=dfnyc1$NEIGHBORHOOD,y=dfnyc1$Freq,fill=dfnyc1$BOROUGH))+geom_bar(stat = "identity")+scale_y_continuous("Number of sales")+scale_x_discrete("Neighborhood")+coord_flip()
+
+dfnyc2<- 
+  nyc_data %>% group_by(BOROUGH, NEIGHBORHOOD) %>% 
+  summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
+  arrange(desc(MeanSP)) %>% head(10)
+
+p4 <- ggplot(data = dfnyc2, aes(x = dfnyc2$NEIGHBORHOOD, y = dfnyc2$MeanSP, fill = dfnyc2$BOROUGH)) +
   geom_bar(stat = "identity") +
   coord_flip() +
-  ggtitle("Most-in demand Neighborhood in NYC", subtitle = "Top Neighborhoods by Number") +
-  theme(legend.position = "bottom") +
-  scale_y_continuous("# of Sales", labels = scales::comma) +
+  ggtitle("Most Expensive Neighborhoods in NYC", 
+          subtitle = "Top Neighborhoods by Avg Price") +
+  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
   scale_x_discrete("Neighborhood") 
 
-p3
+grid.arrange(p3,p4,ncol=1)
+```
+
+From the above graphs we can see that the most in-demand neighborhood is in Queens and the most expensive neighborhood by avg. price is in Staten island.
+
+
+###Buildings
+Let us explore the top ten most in-demand building class and the most expensive building class and to what borough do they belong to.
+```{r, message=FALSE,warning=FALSE}
+dfnyc3<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$BUILDING.CLASS.CATEGORY))
+names(dfnyc3) <- c('BOROUGH','BUILDING CLASS CATEGORY', 'Freq')
+dfnyc3 <- dfnyc3 %>% arrange(desc(Freq)) %>% head(10)
+p5<-ggplot(data = dfnyc3,aes(x=dfnyc3$BOROUGH,y=dfnyc3$Freq,fill=dfnyc3$`BUILDING CLASS CATEGORY`))+geom_bar(stat = "identity",position = "dodge")+scale_y_continuous("Number of sales")+scale_x_discrete("Borough")
+p5
+
+```
+
+From the above diagram it is clear that the one family dwellings are very popular in queens and staten island.
+Condos are particulary in demand in manhattan and in Brooklyn the two family dwellings are more popular than the rest.
+Now lets take a look at the most expensive building class.
+
+```{r, message=FALSE,warning=FALSE}
+dfnyc4<- 
+  nyc_data %>% group_by(BOROUGH,BUILDING.CLASS.CATEGORY ) %>% 
+  summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
+  arrange(desc(MeanSP)) %>% head(10)
+
+p6 <- ggplot(data = dfnyc4, aes(x = dfnyc4$BUILDING.CLASS.CATEGORY, y = dfnyc4$MeanSP, fill = dfnyc4$BOROUGH)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Most Expensive Buildings in NYC") +
+  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
+  scale_x_discrete("Building Type") + theme(legend.position = "bottom")
+p6
+```
+From the above graph we can see that the most expensive buildings are the luxury hotels in Manhattan.
+
+
+###Building Age
+```{r, message=FALSE,warning=FALSE}
+
 ```
 #Check current variable type
 ```{r, message=FALSE,warning=FALSE}
