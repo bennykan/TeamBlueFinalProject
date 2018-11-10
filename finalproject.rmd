@@ -186,7 +186,7 @@ nyc_data[dt]<-lapply(nyc_data[dt],as.Date)
 No let us begin our data exploration.
 
 ###Boroughs
-Let us see which borough recorded the the most property sales
+Let us see which borough recorded the the most property sales and which borough is the most expensive by avg. sale price.
 ```{r, message=FALSE,warning=FALSE}
 p1 <- ggplot(data = nyc_data, aes(x = `BOROUGH`)) +
   geom_bar() +
