@@ -365,6 +365,7 @@ str(data_out)
 
 ###Removed Missing and Outlier Data from SALE.PRICE
 
+To remove outliers values we will use the box and whisker plot.
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -399,8 +400,9 @@ data_out <- data_out[data_out$SALE.PRICE!=-999999,]
 
 ```
 
-We have removd the missing and outlier SALE.PRICE data.  We have reduced our dataset to 46220 oberservations.
+We have removd the missing and outlier SALE.PRICE data.  When we were removing outliers we noticed that it was not removing any small values of SALE.PRICE, this was due to the fact that the minium whisker was going negative and there is no sale price that is below zero.  We made a small change where we divide the inter quartile range by 4 for the minium whisker to remove some small values of sale.price.
 
+We have reduced our dataset to 46220 oberservations.
 
 
 ###Removed Missing and Outlier Data from Gross.SQuare.FEET, YEAR.BUILT and LAND.SQUARE.FEET
@@ -447,6 +449,7 @@ data_out$YEAR.BUILT[data_out$YEAR.BUILT <= 1776] <- NA
 
 ###Impute Data
 
+
 ```{r, message=FALSE,warning=FALSE}
 
 #Analyzed Missing values
@@ -458,7 +461,6 @@ aggr_plot = aggr(data_out, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE,
 data_out <- data_out[,!colnames(data_out) %in% c('EASE.MENT','X','TOTAL.UNITS')]
 
 summary(data_out)
-
 
 
 
@@ -479,6 +481,8 @@ summary(data_out$LAND.SQUARE.FEET)
 summary(data_out$YEAR.BUILT)
 
 ```
+
+We inputed the 3 columns that had some missing values and we dropped the column EASE.MENT because it had 100% missing values.  We inputed the values by taking the median value for the variable for the borough it is in,
 
 
 ###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET
@@ -516,38 +520,6 @@ plot(density(sapply(data_out$SALE.PRICE, log10)))
 data_out$SALE.PRICE <- sapply(data_out$SALE.PRICE, log10)
 ```
 
-####GROSS.SQUARE.FEET
-
-```{r, message=FALSE,warning=FALSE}
-
-
-plot(density(data_out$GROSS.SQUARE.FEET))
-
-#Use log transformation to change to normal distrubution
-
-plot(density(sapply(data_out$GROSS.SQUARE.FEET, log)))
-
-#Update SALE.PRICE
-
-data_out$GROSS.SQUARE.FEET <- sapply(data_out$GROSS.SQUARE.FEET, log)
-```
-
-####LAND.SQUARE.FEET
-
-```{r, message=FALSE,warning=FALSE}
-
-
-plot(density(data_out$LAND.SQUARE.FEET))
-
-#Use log transformation to change to normal distrubution
-
-plot(density(sapply(data_out$LAND.SQUARE.FEET, log)))
-
-#Update SALE.PRICE
-
-data_out$LAND.SQUARE.FEET <- sapply(data_out$LAND.SQUARE.FEET, log)
-
-```
 
 #Modelling
 
