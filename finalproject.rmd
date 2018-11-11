@@ -358,8 +358,16 @@ ggplot(data = nyc_data, aes(x = log(nyc_data$GROSS.SQUARE.FEET), y = log(nyc_dat
   theme(legend.position = "bottom")
 ```
 
-
-
+###Building Age
+```{r, message=FALSE,warning=FALSE}
+ggplot(data = nyc_data, aes(x = nyc_data$BUILDING.AGE, y = log(nyc_data$SALE.PRICE))) +
+  geom_point(aes(col = nyc_data$BOROUGH)) +
+  geom_smooth(method = "lm") +
+  theme(legend.position = "bottom") +
+  ggtitle("Price of Oldest Properties sold in NYC", subtitle = "Oldest buildings in NYC") +
+  scale_y_continuous("Property Value Distribution", labels = scales::dollar) +
+  scale_x_continuous("Building Age") 
+```
 
 
 
