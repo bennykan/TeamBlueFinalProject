@@ -82,6 +82,7 @@ library(readxl)
 library(cluster)
 library(sqldf)
 library(knitr)
+library(xgboost)
 ```
 
 ### Load Datasets
@@ -104,6 +105,62 @@ From the above we can see that 1st column has only the observation numbers and i
 nyc_data<-as_data_frame(data[,-1])
 ```
 
+##Filter For Residential Data
+
+Based on the Business case we only want to create a model for Residentential homes.  We will remove any non residenttial homes from the BUILDING.CLASS.CATEGORY and reduce the dimenionality of the data by grouping condo's and coops under one level.
+
+
+```{r, message=FALSE,warning=FALSE}
+data_out <- data
+
+#Remove any home with facilities in its class
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACILITIES',]
+
+#Remove any commerical
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'COMMERCIAL',]
+
+#Remove office
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OFFICE',]
+
+
+#Remove HOTEL
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'HOTEL',]
+
+#Remove Vacant Land
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'VACANT LAND',]
+
+#Remove Other
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OTHER',]
+
+#Remove PARK
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'PARK',]
+
+#Remove WAREHOUSE
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'WAREHOUSE',]
+
+#Remove STORE
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'STORE',]
+
+#Remove FACTORY
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACTOR',]
+
+
+#Remove ASYLUM
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'ASYLUM',]
+
+#Remove RENTAL
+data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'RENTAL',]
+
+
+data_out$BUILDING.CLASS.CATEGORY <- as.character(data_out$BUILDING.CLASS.CATEGORY)
+data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'CONDO', "CONDO",data_out$BUILDING.CLASS.CATEGORY)
+data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'COOP', "COOP",data_out$BUILDING.CLASS.CATEGORY)
+
+data_out$BUILDING.CLASS.CATEGORY <- as.factor(data_out$BUILDING.CLASS.CATEGORY)
+
+```
+
+
 Now we will introduce a new column which will only give me the BUILDING CLASS CATEGORY i.e "walkup aprartments","elevator apartments" etc. and not the numbers in front of them as they are not needed.
 First i will remove the first three characters and check if it worked.
 
@@ -116,20 +173,11 @@ Instead of the numbers in the BOROUGH column we will put in the names:
 
 ```{r, message=FALSE,warning=FALSE}
 
-nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==1,'Manhattan',nyc_data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==2,'Bronx',nyc_data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==3,'Brooklyn',nyc_data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==4,'Queens',nyc_data$BOROUGH)
-nyc_data$BOROUGH <- ifelse(nyc_data$BOROUGH==5,'Staten Island',nyc_data$BOROUGH)
-
-
-
-
-data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
-data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
+data_out$BOROUGH <- ifelse(data_out$BOROUGH==1,'Manhattan',data_out$BOROUGH)
+data_out$BOROUGH <- ifelse(data_out$BOROUGH==2,'Bronx',data_out$BOROUGH)
+data_out$BOROUGH <- ifelse(data_out$BOROUGH==3,'Brooklyn',data_out$BOROUGH)
+data_out$BOROUGH <- ifelse(data_out$BOROUGH==4,'Queens',data_out$BOROUGH)
+data_out$BOROUGH <- ifelse(data_out$BOROUGH==5,'Staten Island',data_out$BOROUGH)
 
 
 ```
@@ -160,16 +208,16 @@ str(nyc_data$TAX.CLASS.AT.PRESENT)
 Let us finally check for duplicates and remove if there are any:
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data %>% filter(duplicated(nyc_data) == TRUE) %>% nrow()
+data_out %>% filter(duplicated(data_out) == TRUE) %>% nrow()
 ```
 
 
 Removing duplicates:
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data<-unique(nyc_data) 
 
-data <- unique(data)
+
+data_out <- unique(data_out)
 ```
 
 Getting rid of NAs in the Sale price data as we need to take mean of the sale price in our data analysis.
@@ -281,51 +329,54 @@ From the above graph we can see that the most expensive buildings are the luxury
 ```{r, message=FALSE,warning=FALSE}
 
 ```
+
+
+
+
+
+
+
+
+
+
+
+
 #Check current variable type
+
 ```{r, message=FALSE,warning=FALSE}
-str(data)
+str(data_out)
 
 #Change the Borough to Categorical
 
-data$BOROUGH <- as.factor(data$BOROUGH)
+data_out$BOROUGH <- as.factor(data_out$BOROUGH)
 
 #Change ZIP.CODE to categorical
 
-data$ZIP.CODE <- as.factor(data$ZIP.CODE)
+data_out$ZIP.CODE <- as.factor(data_out$ZIP.CODE)
 
 #Change Sale.DATE to date 
 
-data$SALE.DATE <- as.Date(data$SALE.DATE)
+data_out$SALE.DATE <- as.Date(data_out$SALE.DATE)
 
-str(data)
+str(data_out)
 
 ```
 
+
+###Removed Missing and Outlier Data from SALE.PRICE
+
+
 ```{r, message=FALSE,warning=FALSE}
 
-summary(data)
+summary(data_out)
 
 
 
 #Remove sale price of 0 and NA's
-data <- data[data$SALE.PRICE != 0,]
-data <- data[!is.na(data$SALE.PRICE),]
+data_out <- data_out[data_out$SALE.PRICE != 0,]
+data_out <- data_out[!is.na(data_out$SALE.PRICE),]
 
-#Remove any house built before 1776 america
-#data <- data[data$YEAR.BUILT>=1776,]
-
-
-
-#Remove outliers for sale.Price
-
-# sp_plot = ggplot(data, aes(data$SALE.PRICE)) + geom_histogram(binwidth = 10000,colour="black",fill="white")+  scale_x_continuous("Sale.Price")+scale_y_continuous("Observations Count")+labs(title = "Histogram")
-# sp_plot_2 = ggplot(data, aes(,data$SALE.PRICE)) + geom_boxplot(fill = "white")+  scale_y_continuous("Sale.Price")+scale_x_continuous("")+labs(title="Boxplot")
-# sp_plot_2
-# grid.arrange(sp_plot,sp_plot_2,nrow =1,top="SALE.PRICE DISTRIBUTION AND OUTLIERS" )
-
-
-
-data_rm_outliers = data;
+data_rm_outliers = data_out;
 
 remove_outliers <- function(x,lbound) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
@@ -337,43 +388,64 @@ remove_outliers <- function(x,lbound) {
   
 }
 
-
-data$SALE.PRICE <- remove_outliers(data_rm_outliers$SALE.PRICE,4)
-
-data_out <- data[data$SALE.PRICE!=-999999,]
+#identify Outliers for SALE.PRICE, GROSS.SQUARE.FEET and LAND.SQAURE.FEET
+data_out$SALE.PRICE <- remove_outliers(data_rm_outliers$SALE.PRICE,4)
 
 
+
+data_out <- data_out[data_out$SALE.PRICE!=-999999,]
 
 
 
 ```
 
+We have removd the missing and outlier SALE.PRICE data.  We have reduced our dataset to 46220 oberservations.
 
 
+
+###Removed Missing and Outlier Data from Gross.SQuare.FEET, YEAR.BUILT and LAND.SQUARE.FEET
+
+
+####LAND.SQUARE.FEET
+
+We noticed there is zero values for LAND.SQUARE.FEET, we want to investigate is this an error or are there some type of properties that have zero lot size. Specfically we want to look at the what is the LAND.SQUARE.FEET for condos.
+
+
+```{r, message=FALSE,warning=FALSE}
+#Investigate Land square feet
+
+sqldf('SELECT [BUILDING.CLASS.CATEGORY],COUNT(*) FROM data where [LAND.SQUARE.FEET] = 0 group by [BUILDING.CLASS.CATEGORY]')
+
+
+```
+
+We can see that the only type of houses with 0 LAND.SQUARE.FEET are condos and this does not seem to be an error and requires no imputation.
+
+
+####GROSS.SQUARE.FEET
+
+For GROSS.SQUARE.FEET we replaced any 0 values with NA, our assumaption is that no house can have 0 living area.
 
 
 ```{r, message=FALSE,warning=FALSE}
 
 data_out$GROSS.SQUARE.FEET[data_out$GROSS.SQUARE.FEET == 0] <- NA
 
-data_out$YEAR.BUILT[data_out$YEAR.BUILT <= 1776] <- NA
-
-summary(data_out)
-
-
 ```
 
+####YEAR.BUILT
+
+For YEAR.BUILT we replace any house with the year built before 1776 to NA's.
 
 ```{r, message=FALSE,warning=FALSE}
-#Investigate Land square feet
 
-table(data[data$LAND.SQUARE.FEET == 0,c('LAND.SQUARE.FEET','BUILDING.CLASS.CATEGORY')])
-
-
-
+data_out$YEAR.BUILT[data_out$YEAR.BUILT <= 1776] <- NA
 
 ```
 
+
+
+###Impute Data
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -387,15 +459,6 @@ data_out <- data_out[,!colnames(data_out) %in% c('EASE.MENT','X','TOTAL.UNITS')]
 
 summary(data_out)
 
-imputed_values <- function(x,borough) {
-  qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
-  H <- 1.5 * IQR(x, na.rm = TRUE)
-  y=x
-  y[x < (qnt[1] - H/lbound)] = -999999
-  y[x > (qnt[2] + H)] = -999999
-  y
-  
-}
 
 
 
@@ -415,64 +478,76 @@ summary(data_out$GROSS.SQUARE.FEET)
 summary(data_out$LAND.SQUARE.FEET)
 summary(data_out$YEAR.BUILT)
 
-summary(data_out)
+```
 
 
+###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET
+
+
+```{r, message=FALSE,warning=FALSE}
+data_rm_outliers <- data_out
+
+data_out$GROSS.SQUARE.FEET <- remove_outliers(data_rm_outliers$GROSS.SQUARE.FEET,4)
+data_out$LAND.SQUARE.FEET <- remove_outliers(data_rm_outliers$LAND.SQUARE.FEET,4)
+
+data_out <- data_out[data_out$GROSS.SQUARE.FEET!=-999999&data_out$LAND.SQUARE.FEET!=-999999,]
 
 ```
 
-##Filter For Residential Data
+
+###Check Variable Distribution
+
+
+####SALE.PRCIE
+
+Want to Check if the distrbution of SALE.PRICE is normal, if not coverted to normal through transformation
 
 ```{r, message=FALSE,warning=FALSE}
 
 
-#Remove any home with facilities in its class
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACILITIES',]
+plot(density(data_out$SALE.PRICE))
 
-#Remove any commerical
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'COMMERCIAL',]
+#Use log transformation to change to normal distrubution
 
-#Remove office
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OFFICE',]
+plot(density(sapply(data_out$SALE.PRICE, log10)))
 
+#Update SALE.PRICE
 
-#Remove HOTEL
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'HOTEL',]
-
-#Remove Vacant Land
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'VACANT LAND',]
-
-#Remove Other
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OTHER',]
-
-#Remove PARK
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'PARK',]
-
-#Remove WAREHOUSE
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'WAREHOUSE',]
-
-#Remove STORE
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'STORE',]
-
-#Remove FACTORY
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACTOR',]
-
-
-#Remove ASYLUM
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'ASYLUM',]
-
-#Remove RENTAL
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'RENTAL',]
-
-
-data_out$BUILDING.CLASS.CATEGORY <- as.character(data_out$BUILDING.CLASS.CATEGORY)
-data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'CONDO', "CONDO",data_out$BUILDING.CLASS.CATEGORY)
-data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'COOP', "COOP",data_out$BUILDING.CLASS.CATEGORY)
-
-data_out$BUILDING.CLASS.CATEGORY <- as.factor(data_out$BUILDING.CLASS.CATEGORY)
-
+data_out$SALE.PRICE <- sapply(data_out$SALE.PRICE, log10)
 ```
 
+####GROSS.SQUARE.FEET
+
+```{r, message=FALSE,warning=FALSE}
+
+
+plot(density(data_out$GROSS.SQUARE.FEET))
+
+#Use log transformation to change to normal distrubution
+
+plot(density(sapply(data_out$GROSS.SQUARE.FEET, log)))
+
+#Update SALE.PRICE
+
+data_out$GROSS.SQUARE.FEET <- sapply(data_out$GROSS.SQUARE.FEET, log)
+```
+
+####LAND.SQUARE.FEET
+
+```{r, message=FALSE,warning=FALSE}
+
+
+plot(density(data_out$LAND.SQUARE.FEET))
+
+#Use log transformation to change to normal distrubution
+
+plot(density(sapply(data_out$LAND.SQUARE.FEET, log)))
+
+#Update SALE.PRICE
+
+data_out$LAND.SQUARE.FEET <- sapply(data_out$LAND.SQUARE.FEET, log)
+
+```
 
 #Modelling
 
@@ -487,12 +562,7 @@ encod_Categories <- function (x,y) {
   z = y 
   for (i in levels(x)) {
     encod_value <- median(y[x==i])
-    
-    #print(NROW(y[x==i]))
-    #print(encod_value)
     z[x==i] <-  encod_value
-    #print(NROW(z[x==i]))
-    #print(table(z[x==i] ))
     }
   z
   
@@ -511,15 +581,16 @@ for (i in 1:NCOL(encod_data)){
 #Confirm all variables are numeric
 str(encod_data)
 
-table(encod_data$BOROUGH,data_out$BOROUGH)
+table(encod_data$BUILDING.CLASS.CATEGORY,data_out$BUILDING.CLASS.CATEGORY)
 
 ```
 
+We can see that all the columns are now numeric, each level has been replaced with the median sale price value for that level.
 
 
 ##Create dataset for modelling
 
-Now that we have all the categorical variables converted to numeric,we can add in the date and other numeric columns
+Now that we have all the categorical variables converted to numeric,we can create a modelling dataset that includes date field, initall numeric columns and encoded numeric columns.
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -528,6 +599,10 @@ is.num <- sapply(data_out, is.numeric)
 
 data_model <- (data.frame((data_out[,is.num]),encod_data,data_out$SALE.DATE))
 
+#Remove columns 
+
+data_model <- data_model[,!colnames(data_model)%in%c('TAX.CLASS.AT.PRESENT','RESIDENTIAL.UNITS','COMMERCIAL.UNITS','TAX.CLASS.AT.TIME.OF.SALE','BUILDING.CLASS.AT.TIME.OF.SALE')]
+
 
 
 ```
@@ -535,7 +610,7 @@ data_model <- (data.frame((data_out[,is.num]),encod_data,data_out$SALE.DATE))
 ##Look at Correalation
 
 ```{r, message=FALSE,warning=FALSE}
-cor_result=rcorr(as.matrix(data_model[,1:15]))
+cor_result=rcorr(as.matrix(data_model[,1:10]))
 
 
 # ++++++++++++++++++++++++++++
@@ -553,8 +628,8 @@ flattenCorrMatrix <- function(cormat, pmat) {
 
 #Simple method to flatten (if that how you want to look at it)
 cor_result_flat = flattenCorrMatrix(cor_result$r, cor_result$P)
-cor_result_flat
-
+cor_result_flat[cor_result_flat$cor >0.9,]
+cor_result_flat[abs(cor_result_flat$cor) <0.1&cor_result_flat$column=='SALE.PRICE',]
 
 
 ```
@@ -586,14 +661,14 @@ test_data <- data_model[-train_set,]
 We decided to implement a linear regresion model.  With linear regression the goal is to identify a line that best first the data.  The line of best fit is the one which the prediction error is the least.
 
 ```{r, message=FALSE,warning=FALSE}
-#Find Optimal Parameters for Decision Tree Model and reduce bias using cross validation
+#reduce bias using cross validation
 folds=10
 
 fitControl <- trainControl(method="cv",number=folds)
 
-#Implement Decision Tree model 
-LM_model <- train(SALE.PRICE~., data=train_data, method="lm",tuneLength = 50,
-metric = "RMSE",
+#Implement Linear Regresion Model (lm)
+LM_model <- train(SALE.PRICE~., data=train_data, method="lm",
+metric = "MAE",
 trControl = fitControl)
 
 
@@ -611,38 +686,36 @@ We chose to run the linear regression intially on all of our variables.  We will
 
 summary(LM_model)
 
-#Can see TAX.CLASS.AT.PRESENT has high P value , will remove from next model
-
-LM_model <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+data_out.SALE.DATE , data=train_data, method="lm",tuneLength = 50,
-metric = "RMSE",
-trControl = fitControl)
-
-summary(LM_model$finalModel)
-
-
-
 
 print(LM_model)
 
 
-
 ```
-### Accuracy of LM
+
+All of the variables have low p-values, and they are all significants.
+
+### Accuracy of Linear regression model
 
 ```{r, message=FALSE,warning=FALSE}
 
 # Predict Test results
 LM_model.pred <- predict(LM_model, test_data)
 
+
 actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=LM_model.pred )) 
+
+actuals_preds <- sapply(actuals_preds, function(x) 10^x)
 # Check Accuracy of Model 
 min_max_accuracy <- mean (apply(actuals_preds, 1, min) / apply(actuals_preds, 1, max))
 min_max_accuracy
-mape <- mean(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals) 
+mape <- mean(abs((actuals_preds[,"predicteds"]  - actuals_preds[,"actuals"]))/actuals_preds[,"actuals"])
+
 mape
 
 #Within 10%
-Within10 <- ifelse(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals>0.1,0,1)
+
+
+Within10 <- ifelse(abs((actuals_preds[,"predicteds"] - actuals_preds[,"actuals"]))/actuals_preds[,"actuals"]>0.1,0,1)
 
 basic_LM_Accuracy <- mean(Within10)
 
@@ -661,18 +734,31 @@ plot(LM_model$finalModel)
 
 ```
 
+
+
+
+
 ### Linear Regression After Clustering
 
-We wanted to test if we could improve the accuracy of the linear regression by first clustering the data using K means and then create a linear regression model for each cluster.
+We wanted to test if we could improve the accuracy of the linear regression by first clustering the data using K means and then create a linear regression model for each cluster. Our assumption is that there is different subsets of the housing market and by clustering we will identify them and create specfic models for them.
 
 ####Data Normalization
 
-Since the K-means algorithm using distance to find the nearest point we need to ensure all the variables are on the same range.  We do this by normalizing the data.
+Since the K-means algorithm using distance to find the nearest point we need to ensure all the variables are on the same range.  We do this by normalizing the data.  We also need to remove our Target variable SALE.PRICE from the cluster data.
+
 
 ```{r, message=FALSE,warning=FALSE}
 #exclude Date column for clustering
 
-df <- data.frame((data_out[,is.num]),encod_data)
+is.num <- sapply(data_model, is.numeric)
+
+
+df <- data.frame((data_model[,is.num]),encod_data)
+
+
+#remove Sale.Price
+
+df<- df[,!colnames(df)%in%c('SALE.PRICE')]
 
 normalize = function(x) {
   return ((x - min(x)) / (max(x) - min(x)))
@@ -731,19 +817,19 @@ for (i in levels(data_cluster$cluster)){
   #Create train and test data
   train_data_c <- data_model[train_set_c,]
   test_data_C <- data_model[-train_set_c,]
-  lmmodels <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+data_out.SALE.DATE , data=train_data, method="lm",tuneLength = 50,
+  lmmodels <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+data_out.SALE.DATE , data=train_data_c, method="lm",tuneLength = 50,
 metric = "RMSE",
 trControl = fitControl)
   LM_model.pred <- predict(LM_model, test_data_C)
 
-  actuals_preds <- data.frame(cbind(actuals=test_data_C$SALE.PRICE, predicteds=LM_model.pred )) 
+  actuals_preds <- data.frame(cbind(actuals=test_data_C$SALE.PRICE, predicteds=LM_model.pred ))
+  actuals_preds <- sapply(actuals_preds, function(x) 10^x)
   # Check Accuracy of Model 
   min_max_accuracy <- mean (apply(actuals_preds, 1, min) / apply(actuals_preds, 1, max))
-  mape <- mean(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals) 
-  #Within 10%
-  Within10 <- ifelse(abs((actuals_preds$predicteds - actuals_preds$actuals))/actuals_preds$actuals>0.1,0,1)
+  mape <- mean(abs((actuals_preds[,"predicteds"]  - actuals_preds[,"actuals"]))/actuals_preds[,"actuals"])
+  Within10 <- ifelse(abs((actuals_preds[,"predicteds"] - actuals_preds[,"actuals"]))/actuals_preds[,"actuals"]>0.1,0,1)
   
-  current_output <- data.frame(ClusterNumber = i,MinMAxAccuracy = min_max_accuracy,MAPE = mape,Within10 = mean(Within10) ,NumberofRecords = NROW(train_data))
+  current_output <- data.frame(ClusterNumber = i,MinMAxAccuracy = min_max_accuracy,MAPE = mape,Within10 = mean(Within10) ,NumberofRecords = NROW(train_data_c))
   
   lmmodels_output <- rbind(lmmodels_output,current_output)
   
@@ -757,7 +843,7 @@ lmmodels_output$WeightedWithin10 <- lmmodels_output$Within10 * lmmodels_output$N
 
 #Weight Within10 Accuracy
 Clustered_LM_Accuracy <- sum(lmmodels_output$WeightedWithin10) / sum(lmmodels_output$NumberofRecords)
-
+lmmodels_output
 basic_LM_Accuracy
 Clustered_LM_Accuracy
 round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100
@@ -767,4 +853,50 @@ round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100
 
 We can see that running the linear regression model on the individual clusters increased the accuracy by `r round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100` %.
 
+```{r, message=FALSE,warning=FALSE}
+# # model <- "xgbTree"
+# 
+# 
+#   
+# 
+# #########################################################################
+# 
+# xgbGrid <- expand.grid(nrounds = c(1, 10),
+#                        max_depth = c(1, 4),
+#                        eta = c(.1, .4),
+#                        gamma = 0,
+#                        colsample_bytree = .7,
+#                        min_child_weight = 1,
+#                        subsample = c(.8, 1))
+# set.seed(2)
+# cctrl1 <- trainControl(method = "cv", number = 3, returnResamp = "all",
+#                        classProbs = TRUE, 
+#                        summaryFunction = twoClassSummary)
+# 
+# test_class_cv_form <- train(SALE.PRICE~. , data=train_data, 
+#                             method = "xgbTree", 
+#                        
+#                             metric = "MAE")
+# 
+# 
+# 
+# XG_model.pred <- predict(test_class_cv_form, test_data)
+# 
+# XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred )) 
+# # Check Accuracy of Model 
+# XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max))
+# XG_min_max_accuracy
+# 
+# XG_mape <- mean(abs((XG_actuals_preds$predicteds - XG_actuals_preds$actuals))/XG_actuals_preds$actuals) 
+# XG_mape
+# 
+# #Within 10%
+# XG_Within10 <- ifelse(abs((XG_actuals_preds$predicteds - XG_actuals_preds$actuals))/XG_actuals_preds$actuals>0.1,0,1)
+# 
+# XG_basic_LM_Accuracy <- mean(Within10)
+# 
+# XG_basic_LM_Accuracy
 
+
+
+```
