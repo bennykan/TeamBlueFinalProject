@@ -197,8 +197,12 @@ nyc_data$BUILDING.AGE<- 2018-nyc_data$YEAR.BUILT
 From the glossary of terms we find out that there are only 4 types of tax class i.e 1,2,3,4 but in the dataset we observed that there are 11 different levels with the types further divided into 1a,1b,2a,2b etc. So we will remove the sub classes and just keep 4 levels of Tax as it will make our analysis easier.
 
 ```{r, message=FALSE,warning=FALSE}
-levels(nyc_data$TAX.CLASS.AT.PRESENT)[levels(nyc_data$TAX.CLASS.AT.PRESENT=="1A")]<-"1"
-
+nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="1A"]<-1
+nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="1B"]<-1
+nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="1C"]<-1
+nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="2A"]<-2
+nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="2B"]<-2
+nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="2C"]<-2
                                       
 str(nyc_data$TAX.CLASS.AT.PRESENT)
 ```
@@ -241,6 +245,7 @@ num<-c(14,15)
 nyc_data[num]<-lapply(nyc_data[num],as.numeric)
 dt<-c(20)
 nyc_data[dt]<-lapply(nyc_data[dt],as.Date)
+
 ```
 
 No let us begin our data exploration.
@@ -325,16 +330,33 @@ p6
 From the above graph we can see that the most expensive buildings are the luxury hotels in Manhattan.
 
 
-###Building Age
+###Land Square feet across Boroughs:
 ```{r, message=FALSE,warning=FALSE}
+ggplot(data = nyc_data, aes(x = log(nyc_data$LAND.SQUARE.FEET), y = log(nyc_data$SALE.PRICE), color = `BOROUGH`)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") +
+  theme(legend.position = "bottom") +
+   ggtitle("Price Vs Land Square Footage in NYC", 
+          subtitle = "Distribution of Sale Price vs Land Square feet Borough-wise") +
+  scale_y_continuous("Property Sale Price", labels = scales::dollar) +
+  scale_x_continuous("Land Square Footage", labels = scales::comma) +
+   facet_wrap(~ BOROUGH) 
 
 ```
 
+###Gross Square feet across Boroughs:
 
-
-
-
-
+```{r, message=FALSE,warning=FALSE}
+ggplot(data = nyc_data, aes(x = log(nyc_data$GROSS.SQUARE.FEET), y = log(nyc_data$SALE.PRICE), color = `BOROUGH`)) +
+  geom_jitter() +
+  geom_smooth(method = "lm") +
+  facet_wrap(~ BOROUGH) +
+  ggtitle("Price Vs Gross Square Footage in NYC",
+          subtitle = "Distribution of Sale Price vs Gross Square feet Borough-wise") +
+  scale_y_continuous("Property Sale Price", labels = scales::dollar) +
+  scale_x_continuous("Gross Square Footage", labels = scales::comma) +
+  theme(legend.position = "bottom")
+```
 
 
 
