@@ -195,21 +195,6 @@ Now let us introduce a new column "Building Age" as it is much simpler to unders
 nyc_data$BUILDING.AGE<- 2018-nyc_data$YEAR.BUILT
 ```
 
-From the glossary of terms we find out that there are only 4 types of tax class i.e 1,2,3,4 but in the dataset we observed that there are 11 different levels with the types further divided into 1a,1b,2a,2b etc. So we will remove the sub classes and just keep 4 levels of Tax as it will make our analysis easier.
-
-```{r, message=FALSE,warning=FALSE}
-nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="1A"]<-1
-nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="1B"]<-1
-nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="1C"]<-1
-nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="2A"]<-2
-nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="2B"]<-2
-nyc_data$BUILDING.CLASS.CATEGORY[nyc_data$BUILDING.CLASS.CATEGORY=="2C"]<-2
-                                      
-str(nyc_data$TAX.CLASS.AT.PRESENT)
-```
-
-
-
 Let us finally check for duplicates and remove if there are any:
 
 ```{r, message=FALSE,warning=FALSE}
@@ -367,9 +352,22 @@ outlier(nyc_data$LAND.SQUARE.FEET)
 
 
 Let us try to find out how the sale price is per land sq. feet.
+First we will check for NA's in the Land square feet attribute:
+
 ```{r, message=FALSE,warning=FALSE}
 sum(is.na(nyc_data$LAND.SQUARE.FEET))
-ggplot(data = nyc_data, aes(x = log(nyc_data$LAND.SQUARE.FEET), y = log(nyc_data$SALE.PRICE), color = `BOROUGH`)) +
+```
+
+We can see that there are 21000 instances with NA as value and we will remove the same as we just want to find the relation between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_sqfeet" and we will plot the graphs using this dataframe.
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data_sqfeet <- as_data_frame(nyc_data[!is.na(nyc_data$LAND.SQUARE.FEET),])
+```
+
+Now that we have created the new data frame let us check for the relation between the square footage and the sale price.
+
+```{r, message=FALSE,warning=FALSE}
+ggplot(data = nyc_data_sqfeet, aes(x = log(nyc_data_sqfeet$LAND.SQUARE.FEET), y = log(nyc_data_sqfeet$SALE.PRICE), color = `BOROUGH`)) +
   geom_jitter() +
   geom_smooth(method = "lm") +
   theme(legend.position = "bottom") +
@@ -378,10 +376,10 @@ ggplot(data = nyc_data, aes(x = log(nyc_data$LAND.SQUARE.FEET), y = log(nyc_data
   scale_y_continuous("Property Sale Price", labels = scales::dollar) +
   scale_x_continuous("Land Square Footage", labels = scales::comma) +
    facet_wrap(~ BOROUGH) 
-
 ```
+
 We can see that the sale price increases with the square footage across all boroughs.
-Let us check for outliers
+
 
 
 ###Gross Square feet across Boroughs:
@@ -397,9 +395,23 @@ Let us check for outliers
 outlier(nyc_data$GROSS.SQUARE.FEET)
 ```
 
-Let us try to find out how the sale price is per gross sq. feet.
+Let us try to find out how the sale price is per gros sq. feet.
+First we will check for NA's in the gross square feet attribute:
+
 ```{r, message=FALSE,warning=FALSE}
-ggplot(data = nyc_data, aes(x = log(nyc_data$GROSS.SQUARE.FEET), y = log(nyc_data$SALE.PRICE), color = `BOROUGH`)) +
+sum(is.na(nyc_data$GROSS.SQUARE.FEET))
+```
+
+We can see that there are 21532 instances with NA as value and we will remove the same as we just want to find the relation between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_grosssqfeet" and we will plot the graphs using this dataframe.
+
+```{r, message=FALSE,warning=FALSE}
+nyc_data_grosssqfeet <- as_data_frame(nyc_data[!is.na(nyc_data$GROSS.SQUARE.FEET),])
+```
+
+Now that we have created the new data frame let us check for the relation between the square footage and the sale price.
+
+```{r, message=FALSE,warning=FALSE}
+ggplot(data = nyc_data_grosssqfeet, aes(x = log(nyc_data_grosssqfeet$GROSS.SQUARE.FEET), y = log(nyc_data_grosssqfeet$SALE.PRICE), color = `BOROUGH`)) +
   geom_jitter() +
   geom_smooth(method = "lm") +
   facet_wrap(~ BOROUGH) +
@@ -409,6 +421,7 @@ ggplot(data = nyc_data, aes(x = log(nyc_data$GROSS.SQUARE.FEET), y = log(nyc_dat
   scale_x_continuous("Gross Square Footage", labels = scales::comma) +
   theme(legend.position = "bottom")
 ```
+
 We can see a similar trend as we saw with the land square footage. The sale price increases with the gross square footage.
 
 
