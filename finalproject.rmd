@@ -83,6 +83,7 @@ library(cluster)
 library(sqldf)
 library(knitr)
 library(xgboost)
+library(outliers)
 ```
 
 ### Load Datasets
@@ -213,22 +214,24 @@ Let us finally check for duplicates and remove if there are any:
 
 ```{r, message=FALSE,warning=FALSE}
 data_out %>% filter(duplicated(data_out) == TRUE) %>% nrow()
+nyc_data %>% filter(duplicated(nyc_data) == TRUE) %>% nrow()
 ```
-
+From here we can see that there are 765 duplicates and we will remove the same.
 
 Removing duplicates:
 
 ```{r, message=FALSE,warning=FALSE}
-
-
 data_out <- unique(data_out)
+nyc_data <- unique(nyc_data)
 ```
 
 Getting rid of NAs in the Sale price data as we need to take mean of the sale price in our data analysis.
+
 ```{r, message=FALSE,warning=FALSE}
 nyc_data <- nyc_data[!is.na(nyc_data$SALE.PRICE),]
 nyc_data <- nyc_data[nyc_data$SALE.PRICE != 0,]
 ```
+
 ###Data Type conversions
 The original dataset has columns with types that are not suitable for analysis so we will convert them.
 The Boroughs,building class category,zipcode,tax class at the time of sale  are converted to factors.
@@ -249,6 +252,26 @@ nyc_data[dt]<-lapply(nyc_data[dt],as.Date)
 ```
 
 No let us begin our data exploration.
+
+###Sale Price
+First let us see the summary of sale price and then if the data is skewed or not using the quantile function.
+```{r, message=FALSE,warning=FALSE}
+summary(nyc_data$SALE.PRICE)
+quantile(nyc_data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
+```
+
+So from the above we can see that there are many values with low sale price.
+```{r, message=FALSE,warning=FALSE}
+nyc_data %>% filter(SALE.PRICE <= 1000) %>% nrow()
+```
+
+We will remove these rows from our data and check the distribution of the data again.
+```{r, message=FALSE,warning=FALSE}
+nyc_data <- nyc_data %>% filter(!SALE.PRICE <= 1000)
+quantile(nyc_data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
+```
+This shows better distribution with the very low outliers removed. The highest sale price being $2,210,000,000.
+
 
 ###Boroughs
 Let us see which borough recorded the the most property sales and which borough is the most expensive by avg. sale price.
@@ -295,8 +318,7 @@ p4 <- ggplot(data = dfnyc2, aes(x = dfnyc2$NEIGHBORHOOD, y = dfnyc2$MeanSP, fill
 grid.arrange(p3,p4,ncol=1)
 ```
 
-From the above graphs we can see that the most in-demand neighborhood is in Queens and the most expensive neighborhood by avg. price is in Staten island.
-
+From the above graphs we can see that the most in-demand neighborhood is in Queens and the most expensive neighborhood by avg. price is in Staten island. 
 
 ###Buildings
 Let us explore the top ten most in-demand building class and the most expensive building class and to what borough do they belong to.
@@ -304,8 +326,8 @@ Let us explore the top ten most in-demand building class and the most expensive 
 dfnyc3<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$BUILDING.CLASS.CATEGORY))
 names(dfnyc3) <- c('BOROUGH','BUILDING CLASS CATEGORY', 'Freq')
 dfnyc3 <- dfnyc3 %>% arrange(desc(Freq)) %>% head(10)
-p5<-ggplot(data = dfnyc3,aes(x=dfnyc3$BOROUGH,y=dfnyc3$Freq,fill=dfnyc3$`BUILDING CLASS CATEGORY`))+geom_bar(stat = "identity",position = "dodge")+scale_y_continuous("Number of sales")+scale_x_discrete("Borough")
-p5
+ggplot(data = dfnyc3,aes(x=dfnyc3$BOROUGH,y=dfnyc3$Freq,fill=dfnyc3$`BUILDING CLASS CATEGORY`))+geom_bar(stat = "identity",position = "dodge")+scale_y_continuous("Number of sales")+scale_x_discrete("Borough")
+
 
 ```
 
@@ -319,19 +341,34 @@ dfnyc4<-
   summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
   arrange(desc(MeanSP)) %>% head(10)
 
-p6 <- ggplot(data = dfnyc4, aes(x = dfnyc4$BUILDING.CLASS.CATEGORY, y = dfnyc4$MeanSP, fill = dfnyc4$BOROUGH)) +
+ggplot(data = dfnyc4, aes(x = dfnyc4$BUILDING.CLASS.CATEGORY, y = dfnyc4$MeanSP, fill = dfnyc4$BOROUGH)) +
   geom_bar(stat = "identity") +
   coord_flip() +
   ggtitle("Most Expensive Buildings in NYC") +
   scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
   scale_x_discrete("Building Type") + theme(legend.position = "bottom")
-p6
+
 ```
 From the above graph we can see that the most expensive buildings are the luxury hotels in Manhattan.
 
 
 ###Land Square feet across Boroughs:
+First we will see how the data looks like:
+
 ```{r, message=FALSE,warning=FALSE}
+summary(nyc_data$LAND.SQUARE.FEET)
+```
+
+Let us check for outliers
+
+```{r, message=FALSE,warning=FALSE}
+outlier(nyc_data$LAND.SQUARE.FEET)
+```
+
+
+Let us try to find out how the sale price is per land sq. feet.
+```{r, message=FALSE,warning=FALSE}
+sum(is.na(nyc_data$LAND.SQUARE.FEET))
 ggplot(data = nyc_data, aes(x = log(nyc_data$LAND.SQUARE.FEET), y = log(nyc_data$SALE.PRICE), color = `BOROUGH`)) +
   geom_jitter() +
   geom_smooth(method = "lm") +
@@ -343,9 +380,24 @@ ggplot(data = nyc_data, aes(x = log(nyc_data$LAND.SQUARE.FEET), y = log(nyc_data
    facet_wrap(~ BOROUGH) 
 
 ```
+We can see that the sale price increases with the square footage across all boroughs.
+Let us check for outliers
+
 
 ###Gross Square feet across Boroughs:
+First we will see how the data looks like:
 
+```{r, message=FALSE,warning=FALSE}
+summary(nyc_data$GROSS.SQUARE.FEET)
+```
+
+Let us check for outliers
+
+```{r, message=FALSE,warning=FALSE}
+outlier(nyc_data$GROSS.SQUARE.FEET)
+```
+
+Let us try to find out how the sale price is per gross sq. feet.
 ```{r, message=FALSE,warning=FALSE}
 ggplot(data = nyc_data, aes(x = log(nyc_data$GROSS.SQUARE.FEET), y = log(nyc_data$SALE.PRICE), color = `BOROUGH`)) +
   geom_jitter() +
@@ -357,6 +409,8 @@ ggplot(data = nyc_data, aes(x = log(nyc_data$GROSS.SQUARE.FEET), y = log(nyc_dat
   scale_x_continuous("Gross Square Footage", labels = scales::comma) +
   theme(legend.position = "bottom")
 ```
+We can see a similar trend as we saw with the land square footage. The sale price increases with the gross square footage.
+
 
 ###Building Age
 ```{r, message=FALSE,warning=FALSE}
@@ -368,7 +422,7 @@ ggplot(data = nyc_data, aes(x = nyc_data$BUILDING.AGE, y = log(nyc_data$SALE.PRI
   scale_y_continuous("Property Value Distribution", labels = scales::dollar) +
   scale_x_continuous("Building Age") 
 ```
-
+So we can see from the above graph that the building age is not a good predictor of Sale price.
 
 
 #Check current variable type
