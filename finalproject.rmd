@@ -240,21 +240,25 @@ No let us begin our data exploration.
 
 ###Sale Price
 First let us see the summary of sale price and then if the data is skewed or not using the quantile function.
+
 ```{r, message=FALSE,warning=FALSE}
 summary(nyc_data$SALE.PRICE)
 quantile(nyc_data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
 ```
 
-So from the above we can see that there are many values with low sale price.
+So from the above we can see that there are many values with low sale price.We will check for sale price values that are less than a 1000.
+
 ```{r, message=FALSE,warning=FALSE}
 nyc_data %>% filter(SALE.PRICE <= 1000) %>% nrow()
 ```
 
 We will remove these rows from our data and check the distribution of the data again.
+
 ```{r, message=FALSE,warning=FALSE}
 nyc_data <- nyc_data %>% filter(!SALE.PRICE <= 1000)
 quantile(nyc_data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
 ```
+
 This shows better distribution with the very low outliers removed. The highest sale price being $2,210,000,000.
 
 
