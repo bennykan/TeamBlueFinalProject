@@ -415,34 +415,34 @@ data$YEAR.BUILT[data$YEAR.BUILT <= 1776] <- NA
 
 ```
 
-#### Remove Outliers for LAND.SQUARE.FEET and GROSS.SQUARE.FEET
+<!-- #### Remove Outliers for LAND.SQUARE.FEET and GROSS.SQUARE.FEET -->
 
 
-###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET
+<!-- ###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET -->
 
-We will now remove the outliers for the two square feet variables.
+<!-- We will now remove the outliers for the two square feet variables. -->
 
-```{r, message=FALSE,warning=FALSE}
-data_rm_outliers_sq_feet <- data
+<!-- ```{r, message=FALSE,warning=FALSE} -->
+<!-- data_rm_outliers_sq_feet <- data -->
 
-remove_outliers_sq_feet <- function(x,lbound) {
-  qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
-  H <- IQR(x, na.rm = TRUE)
-  y=x
-  y[x < (qnt[1] - H/lbound)] = -999999
-  y[x > (qnt[2] + H)] = -999999
-  y
-  
-}
+<!-- remove_outliers_sq_feet <- function(x,lbound) { -->
+<!--   qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE) -->
+<!--   H <- IQR(x, na.rm = TRUE) -->
+<!--   y=x -->
+<!--   y[x < (qnt[1] - H/lbound)] = -999999 -->
+<!--   y[x > (qnt[2] + H)] = -999999 -->
+<!--   y -->
 
-data$GROSS.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$GROSS.SQUARE.FEET,4)
-data$LAND.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$LAND.SQUARE.FEET,4)
+<!-- } -->
 
-data <- data[data$GROSS.SQUARE.FEET!=-999999&data$LAND.SQUARE.FEET!=-999999,]
+<!-- data$GROSS.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$GROSS.SQUARE.FEET,4) -->
+<!-- data$LAND.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$LAND.SQUARE.FEET,4) -->
 
-```
+<!-- data <- data[data$GROSS.SQUARE.FEET!=-999999&data$LAND.SQUARE.FEET!=-999999,] -->
 
-The dataset now has 36762 elements.
+<!-- ``` -->
+
+<!-- The dataset now has 36762 elements. -->
 
 ### Boroughs
 
