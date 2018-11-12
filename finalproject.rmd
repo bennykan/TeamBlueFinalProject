@@ -317,7 +317,7 @@ First we will check for NA's in the Land square feet attribute:
 sum(is.na(data$LAND.SQUARE.FEET))
 ```
 
-We can see that there are 16181 instances with NAs and we will remove these for the time being to find the relationship between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_sqfeet" and we will plot the graphs using this dataframe.
+We can see that there are `r sum(is.na(data$LAND.SQUARE.FEET))` instances with NAs and we will remove these for the time being to find the relationship between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_sqfeet" and we will plot the graphs using this dataframe.
 
 ```{r, message=FALSE,warning=FALSE}
 nyc_data_sqfeet <- as_data_frame(data[!is.na(data$LAND.SQUARE.FEET),])
@@ -374,7 +374,7 @@ First we will check for NA's in the gross square feet attribute:
 sum(is.na(data$GROSS.SQUARE.FEET))
 ```
 
-We can see that there are 22918 instances with NA as value and we will remove these for the time being in order to find the relationship between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_grosssqfeet" and we will plot the graphs using this dataframe.
+We can see that there are `r sum(is.na(data$GROSS.SQUARE.FEET))`  instances with NA as value and we will remove these for the time being in order to find the relationship between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_grosssqfeet" and we will plot the graphs using this dataframe.
 
 ```{r, message=FALSE,warning=FALSE}
 nyc_data_grosssqfeet <- as_data_frame(data[!is.na(data$GROSS.SQUARE.FEET),])
@@ -415,34 +415,6 @@ data$YEAR.BUILT[data$YEAR.BUILT <= 1776] <- NA
 
 ```
 
-<!-- #### Remove Outliers for LAND.SQUARE.FEET and GROSS.SQUARE.FEET -->
-
-
-<!-- ###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET -->
-
-<!-- We will now remove the outliers for the two square feet variables. -->
-
-<!-- ```{r, message=FALSE,warning=FALSE} -->
-<!-- data_rm_outliers_sq_feet <- data -->
-
-<!-- remove_outliers_sq_feet <- function(x,lbound) { -->
-<!--   qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE) -->
-<!--   H <- IQR(x, na.rm = TRUE) -->
-<!--   y=x -->
-<!--   y[x < (qnt[1] - H/lbound)] = -999999 -->
-<!--   y[x > (qnt[2] + H)] = -999999 -->
-<!--   y -->
-
-<!-- } -->
-
-<!-- data$GROSS.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$GROSS.SQUARE.FEET,4) -->
-<!-- data$LAND.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$LAND.SQUARE.FEET,4) -->
-
-<!-- data <- data[data$GROSS.SQUARE.FEET!=-999999&data$LAND.SQUARE.FEET!=-999999,] -->
-
-<!-- ``` -->
-
-<!-- The dataset now has 36762 elements. -->
 
 ### Boroughs
 
@@ -566,12 +538,47 @@ We imputed the 3 columns that had some missing values: GROSS.SQUARE.FEET, LAND.S
 
 
 
+#### Remove Outliers for LAND.SQUARE.FEET and GROSS.SQUARE.FEET -->
+
+Now that we have inputed the NA's value in LAND.SQUARE.FEET and GROSS.SQUARE.FEET we can remove the outliers for these variables.
+
+```{r, message=FALSE,warning=FALSE} 
+data_rm_outliers_gsq_feet <- data
+
+summary(data$GROSS.SQUARE.FEET)
+
+data$GROSS.SQUARE.FEET <- remove_outliers(data_rm_outliers_gsq_feet$GROSS.SQUARE.FEET,4) 
+
+
+data <- data[data$GROSS.SQUARE.FEET!=-999999,]
+             
+summary(data$GROSS.SQUARE.FEET)
+
+
+
+data_rm_outliers_lsq_feet <- data
+
+summary(data$LAND.SQUARE.FEET)
+
+data$LAND.SQUARE.FEET[data$LAND.SQUARE.FEET!=0] <-remove_outliers(data_rm_outliers_lsq_feet$LAND.SQUARE.FEET[data_rm_outliers_lsq_feet$LAND.SQUARE.FEET!=0],1)
+
+
+data <- data[data$LAND.SQUARE.FEET!=-999999,]
+             
+summary(data$LAND.SQUARE.FEET)
+
+``` 
+We implemented the same outlier detection (BOX Plot method) we used for SALE.PRICE.  When we were removing outliers for LAND.SQUARE.FEET we ignored 0 values as 0 is for condo building and we dont want to remove these.
+
+After removing all outliers dataset now has `r NROW(data) ` elements. -->
+
+
 ###Check Variable Distribution
 
 
 ####SALE.PRCIE
 
-Want to Check if the distrbution of SALE.PRICE is normal, if not coverted to normal through transformation
+Want to Check if the distrbution of SALE.PRICE is normal, if not covert to normal through transformation
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -586,10 +593,12 @@ plot(density(sapply(data$SALE.PRICE, log10)))
 
 data$SALE.PRICE <- sapply(data$SALE.PRICE, log10)
 ```
+We can see intially the SALE.PRICE was skewed towards the lower values, we used a log transformation to create a more normal distribution.
 
 
 #Modelling
 
+Before we can run the model we need to ensure all our variables are numeric. For any categorical variables we need to choose a way to encode it.
 
 ##Encoding Categorical Variables
 
@@ -601,6 +610,7 @@ encod_Categories <- function (x,y) {
   z = y 
   for (i in levels(x)) {
     encod_value <- median(y[x==i])
+ 
     z[x==i] <-  encod_value
     }
   z
@@ -611,40 +621,49 @@ encod_Categories <- function (x,y) {
 
 is.fact <- cbind('BOROUGH','NEIGHBORHOOD','BUILDING.CLASS.CATEGORY','TAX.CLASS.AT.PRESENT','ZIP.CODE','BUILDING.CLASS.AT.TIME.OF.SALE')
 
-encod_data <- data_out[,is.fact]
+encod_data <- as.data.frame(data[,colnames(data)%in%is.fact])
+
+
+
 for (i in 1:NCOL(encod_data)){
-  encod_data[,i] <- encod_Categories(encod_data[,i],data_out$SALE.PRICE)
+  
+  encod_data[,i] <- encod_Categories(encod_data[,i],data$SALE.PRICE)
   
 }
 
 #Confirm all variables are numeric
 str(encod_data)
 
-table(encod_data$BUILDING.CLASS.CATEGORY,data_out$BUILDING.CLASS.CATEGORY)
+
+table(data$BUILDING.CLASS.CATEGORY,encod_data$BUILDING.CLASS.CATEGORY)
+
 
 ```
 
-We can see that all the columns are now numeric, each level has been replaced with the median sale price value for that level.
+We can see that all the columns are now numeric. Each level has been replaced with the median sale price value for that variable.
 
 
 ##Create dataset for modelling
 
-Now that we have all the categorical variables converted to numeric,we can create a modelling dataset that includes date field, initall numeric columns and encoded numeric columns.
+Now that we have all the categorical variables converted to numeric,we can create a modelling dataset that includes the SALE.DATE field, inital numeric columns and encoded categorical columns.
 
 ```{r, message=FALSE,warning=FALSE}
 
-is.num <- sapply(data_out, is.numeric)
+is.num <- sapply(data, is.numeric)
 
 
-data_model <- (data.frame((data_out[,is.num]),encod_data,data_out$SALE.DATE))
+data_model <- (data.frame((data[,is.num]),encod_data,data$SALE.DATE))
 
 #Remove columns 
 
-data_model <- data_model[,!colnames(data_model)%in%c('TAX.CLASS.AT.PRESENT','RESIDENTIAL.UNITS','COMMERCIAL.UNITS','TAX.CLASS.AT.TIME.OF.SALE','BUILDING.CLASS.AT.TIME.OF.SALE')]
+data_model <- data_model[,!colnames(data_model)%in%c('YEAR.BUILT','TAX.CLASS.AT.PRESENT','RESIDENTIAL.UNITS','COMMERCIAL.UNITS','TAX.CLASS.AT.TIME.OF.SALE','BUILDING.CLASS.AT.TIME.OF.SALE')]
 
 
 
 ```
+
+We also remove all columns that a typically homeowner would not know about there house, we need to do this as our business model requires the user to enter information about the house.
+
 
 ##Look at Correalation
 
@@ -697,7 +716,9 @@ test_data <- data_model[-train_set,]
 
 ## Build Model 
 
-We decided to implement a linear regresion model.  With linear regression the goal is to identify a line that best first the data.  The line of best fit is the one which the prediction error is the least.
+We decided to implement a linear regresion model.  With linear regression the goal is to identify a line that best first the data.  The line of best fit is the one where the prediction error is the least.  Since the linear regression tries to reduce the prediction error between actual and predicted ,linear regression can become skewed by outliers in the data.  We tried to reduce this by pre processing the data and removing the outliers.
+
+We will create a basic linear regression on our train_data set using a 10 fold cross validation to help reduce over fitting.
 
 ```{r, message=FALSE,warning=FALSE}
 #reduce bias using cross validation
@@ -718,7 +739,6 @@ We chose to run the linear regression intially on all of our variables.  We will
 ## Assess Model
 
 
-
 ###variable Significance
 
 ```{r, message=FALSE,warning=FALSE}
@@ -731,9 +751,31 @@ print(LM_model)
 
 ```
 
-All of the variables have low p-values, and they are all significants.
+All of the variables have low p-values, we can conclude our model is statistically significant.
+
+The model has a Rsquared of 0.46, this means that the only 46% of the SALE.PRICE variable variation is explained by our linear model.  This was a lower Rquared then we expected since all of our variables are shown to be significant. We will now look at the residuals plot to see if they help determine if the linear model is good or not.
+
+
+
+####Check Residual of Linear Model
+
+```{r, message=FALSE,warning=FALSE}
+plot(LM_model$finalModel)
+
+
+
+
+```
+
+
+With linear regression we make the assumption that the errors will be normal distributed, to test that we will look at the Normal Q-Q plot.  This plot compares the quantiles of our errors to the quantiles of the normal distribution.  If the errors of our model was exactly normal we would expect to see a straight line.  We can see from the graph the line is fairly straight but curves off near the bottom quantiles.
+
+Next we want to look at the Standardize residuals charted against the predicted value.  We expect the residuals to be random and there should be no observed pattern.  From the 3rd Chart we can the residuals look pretty random and there does not appear to be any pattern.
+
 
 ### Accuracy of Linear regression model
+
+Now that we confirmed that we are using signicant variables and  residuals are random.  We can look into the accuracy of the model on the test data.
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -763,19 +805,11 @@ basic_LM_Accuracy
 
 ```
 
-The linear regression has an intial accuracy of `r ROUND(basic_LM_Accuracy,4) % ` within 10% of actual value.
+We measure the accuracy 3 ways.  The first way was to look at the min max accuracy.  This looks at the ratio of min(acutal, predicted) / max(actual,predicted), this ratio tells how close the actual and predicted where to eachother.  1 is it is exactly the predicted, 0.5 means on average the they  50% of each other. (EX: 50K Predicted, 100K actual, or 200K predicted, 100k actual).  We had a min max accuracy of `r ROUND(min_max_accuracy,4) `%
 
+The second way was was to look at the Mean Absolute % change, this is percentage change between the absolute difference between predicted and actual.  We had an Mean absolute % change of `r ROUND(mape,4) `%.
 
-####Check Residual of Linear Model
-
-```{r, message=FALSE,warning=FALSE}
-plot(LM_model$finalModel)
-
-```
-
-
-
-
+The third way to lok at what percent of the predicted were within 10% of the actual value.  We had `r ROUND(basic_LM_Accuracy,4) `%  of properties that were within 10% of the actual value.
 
 ### Linear Regression After Clustering
 
@@ -826,7 +860,7 @@ wssplot(df, nc=10)
 
 ```
 
-Based on the Elbow method, we found the optimal number to be 6. Beyond 6, we see gradually decreasing improvements on the SSE.
+Based on the Elbow method, we found the optimal number to be 4. Beyond 4, we see gradually decreasing improvements on the SSE.
 
 #### Building K-Means Model 
 
@@ -836,7 +870,7 @@ We are now able to create the K means model, we are creating 4 clusters with the
 
 set.seed(9897665)
 
-kmeans.result <- kmeans(df, centers=6, nstart=15, iter.max = 100)
+kmeans.result <- kmeans(df, centers=4, nstart=15, iter.max = 100)
 
 ```
 
@@ -856,7 +890,7 @@ for (i in levels(data_cluster$cluster)){
   #Create train and test data
   train_data_c <- data_model[train_set_c,]
   test_data_C <- data_model[-train_set_c,]
-  lmmodels <- train(SALE.PRICE~BLOCK+LOT+LAND.SQUARE.FEET+GROSS.SQUARE.FEET+YEAR.BUILT+BOROUGH+NEIGHBORHOOD+BUILDING.CLASS.CATEGORY +ZIP.CODE+data_out.SALE.DATE , data=train_data_c, method="lm",tuneLength = 50,
+  lmmodels <- train(SALE.PRICE~., data=train_data_c, method="lm",tuneLength = 50,
 metric = "RMSE",
 trControl = fitControl)
   LM_model.pred <- predict(LM_model, test_data_C)
