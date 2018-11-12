@@ -38,26 +38,26 @@ Variable Name                   | Description
 BOROUGH                         | The name of the borough in which the property is located                    
 NEIGHBORHOOD                    | Neighborhood name in the course of valuing properties
 BUILDING CLASS CATEGORY         | Building class descriptions
-TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                    | primarily residential (Co-ops and condos) 3: Property with equipment owned                                  | by a gas, telephone or electric company; 4: All other properties not                                        | included  
+TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                                            | primarily residential (Co-ops and condos) 3: Property with equipment owned                                                          | by a gas, telephone or electric company; 4: All other properties not                                                                | included  
 BLOCK                           | Sub-division of the borough on which the real properties are located
 LOT                             | Subdivision of a block and represents the property unique location     
-EASEMENT                        | A right which allows an entity to make limited use of another's real                                        | property
+EASEMENT                        | A right which allows an entity to make limited use of another's real                                                                | property
 BUILDING CLASS AT PRESENT       | Building Code. Details can be found at
                                 | https://www1.nyc.gov/assets/finance/jump/hlpbldgcode.html
-ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                               | include the apartment number
+ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                              | include the apartment number
 ZIP CODE                        | The property's postal code
 RESIDENTIAL UNITS               | The number of residential units at the listed property
 COMMERCIAL UNITS                | The number of commercial units at the listed property
 LAND SQUARE FEET                | The land area of the property listed in square feet
-GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                 | surfaces of the outside walls of the building
+GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                                        | surfaces of the outside walls of the building
 YEAR BUILT                      | Year the structure on the property was built
-BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                   | use. The first position of the Building Class is a letter that is used to                                   | describe a general class of properties
+BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                                           | use. The first position of the Building Class is a letter that is used to                                                           | describe a general class of properties
 SALES PRICE                     | Price paid for the property
 SALE DATE                       | Date of property sold
 
 Note: $0 Sales Price: A $0 sale indicates that there was a transfer of ownership without a cash consideration. There can be a number of reasons for a $0 sale including transfers of ownership from parents to children. 
 
-## Data Exploration
+## Data Quality Checks and Prelimiary Data Cleaning
 
 ### Load Packages
 
@@ -91,7 +91,7 @@ library(outliers)
 Now that the packages are loaded, we can load in the dataset. 
 
 ```{r, message=FALSE,warning=FALSE}
-data=read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
+data <- read.csv(file.choose(), header = TRUE, na.strings = c("NA","","#NA"," -  "))
 ```
 
 Now let us see how our dataset looks like:
@@ -100,272 +100,227 @@ Now let us see how our dataset looks like:
 str(data)
 ```
 
-From the above we can see that 1st column has only the observation numbers and is not necessary for our data exploration so i will remove it for the time being and make a new dataset.
+From the above we can see that first column has only the observation numbers and is not necessary for our data exploration and modeling proesses so we will remove it.
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data<-as_data_frame(data[,-1])
+data <- as_data_frame(data[,-1])
 ```
 
-##Filter For Residential Data
+### Residential Data Selection
 
-Based on the Business case we only want to create a model for Residentential homes.  We will remove any non residenttial homes from the BUILDING.CLASS.CATEGORY and reduce the dimenionality of the data by grouping condo's and coops under one level.
+Based on our business case, we only want to create a model to predit the prices of the residentential homes.  We will then remove any sales data that are not residenttial homes based on the BUILDING.CLASS.CATEGORY. 
 
 
 ```{r, message=FALSE,warning=FALSE}
-data_out <- data
 
 #Remove any home with facilities in its class
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACILITIES',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'FACILITIES',]
 
 #Remove any commerical
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'COMMERCIAL',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'COMMERCIAL',]
 
 #Remove office
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OFFICE',]
-
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'OFFICE',]
 
 #Remove HOTEL
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'HOTEL',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'HOTEL',]
 
 #Remove Vacant Land
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'VACANT LAND',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'VACANT LAND',]
 
 #Remove Other
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'OTHER',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'OTHER',]
 
 #Remove PARK
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'PARK',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'PARK',]
 
 #Remove WAREHOUSE
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'WAREHOUSE',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'WAREHOUSE',]
 
 #Remove STORE
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'STORE',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'STORE',]
 
 #Remove FACTORY
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'FACTOR',]
-
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'FACTOR',]
 
 #Remove ASYLUM
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'ASYLUM',]
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'ASYLUM',]
 
 #Remove RENTAL
-data_out <- data_out[!data_out$BUILDING.CLASS.CATEGORY %like% 'RENTAL',]
-
-
-data_out$BUILDING.CLASS.CATEGORY <- as.character(data_out$BUILDING.CLASS.CATEGORY)
-data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'CONDO', "CONDO",data_out$BUILDING.CLASS.CATEGORY)
-data_out$BUILDING.CLASS.CATEGORY <- ifelse(data_out$BUILDING.CLASS.CATEGORY %like% 'COOP', "COOP",data_out$BUILDING.CLASS.CATEGORY)
-
-data_out$BUILDING.CLASS.CATEGORY <- as.factor(data_out$BUILDING.CLASS.CATEGORY)
-
+data <- data[!data$BUILDING.CLASS.CATEGORY %like% 'RENTAL',]
 ```
 
+### Remove Number Codes in the Building Class Category
 
-Now we will introduce a new column which will only give me the BUILDING CLASS CATEGORY i.e "walkup aprartments","elevator apartments" etc. and not the numbers in front of them as they are not needed.
-First i will remove the first three characters and check if it worked.
+As we examine the BUILDING.CLASS.CATEGORY more, we notice that the some categories start with number codes.We think that this information is redundant and could introduce unnecessary complexity. Therefore, we will set up a new column which will only give us the BUILDING CLASS CATEGORY without the number codes i.e "walkup aprartments","elevator apartments" etc.
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data$BUILDING.CLASS.CATEGORY<-substring(nyc_data$BUILDING.CLASS.CATEGORY,3)
-head(nyc_data$BUILDING.CLASS.CATEGORY)
+data$BUILDING.CLASS.CATEGORY<-substring(data$BUILDING.CLASS.CATEGORY,3)
+head(data$BUILDING.CLASS.CATEGORY)
 ```
 
-Instead of the numbers in the BOROUGH column we will put in the names:
+### Consolidate Condos and Coops Building Class Categories
+
+We would like reduce the number of factors under the condos and coops building types by grouping various types of condos and coops as "CONDOS" and "COOP" respectively.
+
+```{r, message=FALSE,warning=FALSE}
+#Combine CONDO and COOP
+data$BUILDING.CLASS.CATEGORY <- as.character(data$BUILDING.CLASS.CATEGORY)
+data$BUILDING.CLASS.CATEGORY <- ifelse(data$BUILDING.CLASS.CATEGORY %like% 'CONDO', "CONDO",data$BUILDING.CLASS.CATEGORY)
+data$BUILDING.CLASS.CATEGORY <- ifelse(data$BUILDING.CLASS.CATEGORY %like% 'COOP', "COOP",data$BUILDING.CLASS.CATEGORY)
+data$BUILDING.CLASS.CATEGORY <- as.factor(data$BUILDING.CLASS.CATEGORY)
+```
+
+### Borough
+
+Currently, the Borough column is numeric to represent the five boroughs in New York City:  Manhattan (1), Bronx (2), Brooklyn (3), Queens (4), and Staten Island (5). We will name the boroughs with proper names to provide more clarity and make our lives easier for the modeling work. 
 
 ```{r, message=FALSE,warning=FALSE}
 
-data_out$BOROUGH <- ifelse(data_out$BOROUGH==1,'Manhattan',data_out$BOROUGH)
-data_out$BOROUGH <- ifelse(data_out$BOROUGH==2,'Bronx',data_out$BOROUGH)
-data_out$BOROUGH <- ifelse(data_out$BOROUGH==3,'Brooklyn',data_out$BOROUGH)
-data_out$BOROUGH <- ifelse(data_out$BOROUGH==4,'Queens',data_out$BOROUGH)
-data_out$BOROUGH <- ifelse(data_out$BOROUGH==5,'Staten Island',data_out$BOROUGH)
-
+data$BOROUGH <- ifelse(data$BOROUGH==1,'Manhattan',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==2,'Bronx',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==3,'Brooklyn',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==4,'Queens',data$BOROUGH)
+data$BOROUGH <- ifelse(data$BOROUGH==5,'Staten Island',data$BOROUGH)
 
 ```
+
+### EASE-MENT
 
 We will remove the column "EASE-MENT" as it has null value throughout:
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data$EASE.MENT<-NULL
+data$EASE.MENT<-NULL
 ```
 
-Now let us introduce a new column "Building Age" as it is much simpler to understand.
+### Add the Building Age Column
+
+Now let us introduce a new column "Building Age" in years as it is much easier to understand.
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data$BUILDING.AGE<- 2018-nyc_data$YEAR.BUILT
+data$BUILDING.AGE<- 2018 - data$YEAR.BUILT
 ```
+
+### Check for Duplicate Data and Remove Those
 
 Let us finally check for duplicates and remove if there are any:
 
 ```{r, message=FALSE,warning=FALSE}
-data_out %>% filter(duplicated(data_out) == TRUE) %>% nrow()
-nyc_data %>% filter(duplicated(nyc_data) == TRUE) %>% nrow()
+data %>% filter(duplicated(data) == TRUE) %>% nrow()
 ```
-From here we can see that there are 765 duplicates and we will remove the same.
+From here we can see that there are 464 duplicated data elements in which we will remove them.
 
 Removing duplicates:
 
 ```{r, message=FALSE,warning=FALSE}
-data_out <- unique(data_out)
-nyc_data <- unique(nyc_data)
+data <- unique(data)
 ```
 
-Getting rid of NAs in the Sale price data as we need to take mean of the sale price in our data analysis.
+### Data Type conversions
 
-```{r, message=FALSE,warning=FALSE}
-nyc_data <- nyc_data[!is.na(nyc_data$SALE.PRICE),]
-nyc_data <- nyc_data[nyc_data$SALE.PRICE != 0,]
-```
+The original dataset has columns with types that are not suitable for analysis so we will convert them to suitable types.
 
-###Data Type conversions
-The original dataset has columns with types that are not suitable for analysis so we will convert them.
-The Boroughs,building class category,zipcode,tax class at the time of sale  are converted to factors.
-Address,apartment number converted to chr.
-Land square feet,gross square feet,year to numeric.
-Sale date to date.
+* The Boroughs, Building Class Category, Zipcode, Tax class are converted to factors.
+* Address, Apartment Number converted to characters.
+* Land Square Feet, Gross Square Feet, Year are converted to  numeric.
+* Sale Date is converted to the date format.
 
 ```{r, message=FALSE,warning=FALSE}
 fac<-c(1,3,10,17)
-nyc_data[fac]<-lapply(nyc_data[fac],factor)
+data[fac]<-lapply(data[fac],factor)
 chr<-c(8,9)
-nyc_data[chr]<-lapply(nyc_data[chr],as.character)
+data[chr]<-lapply(data[chr],as.character)
 num<-c(14,15)
-nyc_data[num]<-lapply(nyc_data[num],as.numeric)
+data[num]<-lapply(data[num],as.numeric)
 dt<-c(20)
-nyc_data[dt]<-lapply(nyc_data[dt],as.Date)
+data[dt]<-lapply(data[dt],as.Date)
 
 ```
 
-No let us begin our data exploration.
-
-###Sale Price
-First let us see the summary of sale price and then if the data is skewed or not using the quantile function.
+Let's now look at the data structure once again
 
 ```{r, message=FALSE,warning=FALSE}
-summary(nyc_data$SALE.PRICE)
-quantile(nyc_data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
+str(data)
 ```
 
-So from the above we can see that there are many values with low sale price.We will check for sale price values that are less than a 1000.
+We are now at the stage where we can perform some data exploration. We will further fine tune our dataset as we go along.
+
+## Data Exploration and Outlier Analysis
+
+### Sale Price
+
+First let us see the summary of sale price and then if the data is skewed by using the quantile function and box plot.
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data %>% filter(SALE.PRICE <= 1000) %>% nrow()
+summary(data$SALE.PRICE)
+#quantile(data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
+
+ggplot(data, aes(,data$SALE.PRICE)) + geom_boxplot(fill = "white")+  scale_y_continuous("SALE PRICE")+scale_x_continuous("")+labs(title="Boxplot for Sale Prices")
+
 ```
 
-We will remove these rows from our data and check the distribution of the data again.
+As we can see, there are zero sale prices and substantial number of properties with very low sale prices which might not be correct. We will remove the outliers using the algorithms used in box and whisker plots.
+
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data <- nyc_data %>% filter(!SALE.PRICE <= 1000)
-quantile(nyc_data$SALE.PRICE, probs = seq(from = 0, to = 1, by = .1))
-```
 
-This shows better distribution with the very low outliers removed. The highest sale price being $2,210,000,000.
+#Remove sale prices with 0s and NAs, and with very low and high values (outliers)
 
+data <- data[data$SALE.PRICE != 0,]
+data <- data[!is.na(data$SALE.PRICE),]
 
-###Boroughs
-Let us see which borough recorded the the most property sales and which borough is the most expensive by avg. sale price.
-```{r, message=FALSE,warning=FALSE}
-p1 <- ggplot(data = nyc_data, aes(x = `BOROUGH`)) +
-  geom_bar() +
-  ggtitle("In-Demand Borough in NYC") +
-  scale_y_continuous("# of Property Sales", labels = scales::comma) +
-  scale_x_discrete("Borough")
+data_rm_outliers <- data;
 
-p2 <- ggplot(data = nyc_data, aes(x = `BOROUGH`, y = mean(`SALE.PRICE`))) +
-  geom_bar(stat = "identity") +
-  ggtitle("Most Expensive Borough in NYC", subtitle = "Avg. Property Sale Price in NYC") +
-  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
-  scale_x_discrete("Borough")
+remove_outliers <- function(x,lbound) {
+  qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
+  H <- 1.5 * IQR(x, na.rm = TRUE)
+  y=x
+  y[x < (qnt[1] - H/lbound)] = -999999
+  y[x > (qnt[2] + H)] = -999999
+  y
+  
+}
 
-grid.arrange(p1, p2, ncol = 1)
-```
+data$SALE.PRICE <- remove_outliers(data_rm_outliers$SALE.PRICE,4)
 
-The plots show that queens had the most number of property sales followed by brooklyn. The average sale price of a property in queens is the highest followed by brooklyn.
-
-###Neigborhoods
-Now that we have explored the sale price according to the boroughs let us check for the most expensive neighborhoods.
-We will only take the top ten neigborhoods as it will be difficult to plot all the neighborhoods.
-```{r, message=FALSE,warning=FALSE}
-dfnyc1<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$NEIGHBORHOOD))
-names(dfnyc1) <- c('BOROUGH','NEIGHBORHOOD', 'Freq')
-dfnyc1 <- dfnyc1 %>% arrange(desc(Freq)) %>% head(10)
-p3<-ggplot(data = dfnyc1,aes(x=dfnyc1$NEIGHBORHOOD,y=dfnyc1$Freq,fill=dfnyc1$BOROUGH))+geom_bar(stat = "identity")+scale_y_continuous("Number of sales")+scale_x_discrete("Neighborhood")+coord_flip()
-
-dfnyc2<- 
-  nyc_data %>% group_by(BOROUGH, NEIGHBORHOOD) %>% 
-  summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
-  arrange(desc(MeanSP)) %>% head(10)
-
-p4 <- ggplot(data = dfnyc2, aes(x = dfnyc2$NEIGHBORHOOD, y = dfnyc2$MeanSP, fill = dfnyc2$BOROUGH)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  ggtitle("Most Expensive Neighborhoods in NYC", 
-          subtitle = "Top Neighborhoods by Avg Price") +
-  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
-  scale_x_discrete("Neighborhood") 
-
-grid.arrange(p3,p4,ncol=1)
-```
-
-From the above graphs we can see that the most in-demand neighborhood is in Queens and the most expensive neighborhood by avg. price is in Staten island. 
-
-###Buildings
-Let us explore the top ten most in-demand building class and the most expensive building class and to what borough do they belong to.
-```{r, message=FALSE,warning=FALSE}
-dfnyc3<-as.data.frame(table(nyc_data$BOROUGH, nyc_data$BUILDING.CLASS.CATEGORY))
-names(dfnyc3) <- c('BOROUGH','BUILDING CLASS CATEGORY', 'Freq')
-dfnyc3 <- dfnyc3 %>% arrange(desc(Freq)) %>% head(10)
-ggplot(data = dfnyc3,aes(x=dfnyc3$BOROUGH,y=dfnyc3$Freq,fill=dfnyc3$`BUILDING CLASS CATEGORY`))+geom_bar(stat = "identity",position = "dodge")+scale_y_continuous("Number of sales")+scale_x_discrete("Borough")
-
+data <- data[data$SALE.PRICE!=-999999,]
 
 ```
 
-From the above diagram it is clear that the one family dwellings are very popular in queens and staten island.
-Condos are particulary in demand in manhattan and in Brooklyn the two family dwellings are more popular than the rest.
-Now lets take a look at the most expensive building class.
+We have removed the missing and outlier SALE.PRICE data.  When we were removing outliers, we noticed that it was not removing any small values of SALE.PRICE, this was due to the fact that the minimum whisker was going negative and there is no sale price that is below zero.  We made a small change where we divide the inter quartile range by 4 for the minimum whisker to remove some small values of sale prices.
 
-```{r, message=FALSE,warning=FALSE}
-dfnyc4<- 
-  nyc_data %>% group_by(BOROUGH,BUILDING.CLASS.CATEGORY ) %>% 
-  summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
-  arrange(desc(MeanSP)) %>% head(10)
+We have reduced our dataset to 46153 oberservations.
 
-ggplot(data = dfnyc4, aes(x = dfnyc4$BUILDING.CLASS.CATEGORY, y = dfnyc4$MeanSP, fill = dfnyc4$BOROUGH)) +
-  geom_bar(stat = "identity") +
-  coord_flip() +
-  ggtitle("Most Expensive Buildings in NYC") +
-  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
-  scale_x_discrete("Building Type") + theme(legend.position = "bottom")
+### Data Quality and Outlier Analysis for Gross.SQUARE.FEET, LAND.SQUARE.FEET and YEAR.BUILT
 
-```
-From the above graph we can see that the most expensive buildings are the luxury hotels in Manhattan.
+#### LAND.SQUARE.FEET
 
+We noticed there are zero values for LAND.SQUARE.FEET, we want to investigate if this is an error or if there are some types of properties that have zero lot sizes. Specifically, we want to look at what is the LAND.SQUARE.FEET for condos.
 
-###Land Square feet across Boroughs:
 First we will see how the data looks like:
 
 ```{r, message=FALSE,warning=FALSE}
-summary(nyc_data$LAND.SQUARE.FEET)
+summary(data$LAND.SQUARE.FEET)
 ```
 
 Let us check for outliers
 
 ```{r, message=FALSE,warning=FALSE}
-outlier(nyc_data$LAND.SQUARE.FEET)
+outlier(data$LAND.SQUARE.FEET)
 ```
 
-
 Let us try to find out how the sale price is per land sq. feet.
+
 First we will check for NA's in the Land square feet attribute:
 
 ```{r, message=FALSE,warning=FALSE}
-sum(is.na(nyc_data$LAND.SQUARE.FEET))
+sum(is.na(data$LAND.SQUARE.FEET))
 ```
 
-We can see that there are 21000 instances with NA as value and we will remove the same as we just want to find the relation between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_sqfeet" and we will plot the graphs using this dataframe.
+We can see that there are 16181 instances with NAs and we will remove these for the time being to find the relationship between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_sqfeet" and we will plot the graphs using this dataframe.
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data_sqfeet <- as_data_frame(nyc_data[!is.na(nyc_data$LAND.SQUARE.FEET),])
+nyc_data_sqfeet <- as_data_frame(data[!is.na(data$LAND.SQUARE.FEET),])
 ```
 
 Now that we have created the new data frame let us check for the relation between the square footage and the sale price.
@@ -381,35 +336,48 @@ ggplot(data = nyc_data_sqfeet, aes(x = log(nyc_data_sqfeet$LAND.SQUARE.FEET), y 
   scale_x_continuous("Land Square Footage", labels = scales::comma) +
    facet_wrap(~ BOROUGH) 
 ```
+ 
+We can see that the sale price increases with the square footage across all boroughs except Manhattan. It could be because the distribution of the square footage of properties in Manhattan is not as dispersed so the log of the values is even more concentrated.
 
-We can see that the sale price increases with the square footage across all boroughs.
+
+```{r, message=FALSE,warning=FALSE}
+#Investigate Land square feet with zero values
+
+sqldf('SELECT [BUILDING.CLASS.CATEGORY],COUNT(*) FROM data where [LAND.SQUARE.FEET] = 0 group by [BUILDING.CLASS.CATEGORY]')
 
 
+```
 
-###Gross Square feet across Boroughs:
+We can see that the only type of houses with 0 LAND.SQUARE.FEET are condos and coops and this does not seem to be an error and requires no imputation.
+
+
+#### GROSS.SQUARE.FEET
+
+For GROSS.SQUARE.FEET we replaced any 0 values with NA, our assumaption is that no house can have 0 living area.
+
 First we will see how the data looks like:
 
 ```{r, message=FALSE,warning=FALSE}
-summary(nyc_data$GROSS.SQUARE.FEET)
+summary(data$GROSS.SQUARE.FEET)
 ```
 
 Let us check for outliers
 
 ```{r, message=FALSE,warning=FALSE}
-outlier(nyc_data$GROSS.SQUARE.FEET)
+outlier(data$GROSS.SQUARE.FEET)
 ```
 
 Let us try to find out how the sale price is per gros sq. feet.
 First we will check for NA's in the gross square feet attribute:
 
 ```{r, message=FALSE,warning=FALSE}
-sum(is.na(nyc_data$GROSS.SQUARE.FEET))
+sum(is.na(data$GROSS.SQUARE.FEET))
 ```
 
-We can see that there are 21532 instances with NA as value and we will remove the same as we just want to find the relation between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_grosssqfeet" and we will plot the graphs using this dataframe.
+We can see that there are 22918 instances with NA as value and we will remove these for the time being in order to find the relationship between the square footage and the sale price. For this purpose only we will create a new data frame "nyc_data_grosssqfeet" and we will plot the graphs using this dataframe.
 
 ```{r, message=FALSE,warning=FALSE}
-nyc_data_grosssqfeet <- as_data_frame(nyc_data[!is.na(nyc_data$GROSS.SQUARE.FEET),])
+nyc_data_grosssqfeet <- as_data_frame(data[!is.na(data$GROSS.SQUARE.FEET),])
 ```
 
 Now that we have created the new data frame let us check for the relation between the square footage and the sale price.
@@ -426,63 +394,40 @@ ggplot(data = nyc_data_grosssqfeet, aes(x = log(nyc_data_grosssqfeet$GROSS.SQUAR
   theme(legend.position = "bottom")
 ```
 
-We can see a similar trend as we saw with the land square footage. The sale price increases with the gross square footage.
+We can see a similar trend as we saw with the land square footage. The sale price increases with the gross square footage. The ones for Mahattan is interesting. This seems to suggest that the square footage has a weak relationship with the sale price. This could be because Manhattan has a significant location premium being factored into the price, even more so than the square footage.
 
+For the sold properties with gross square feet of zero, we will replace them with NAs as we will impute the data later on.
 
-###Building Age
-```{r, message=FALSE,warning=FALSE}
-ggplot(data = nyc_data, aes(x = nyc_data$BUILDING.AGE, y = log(nyc_data$SALE.PRICE))) +
-  geom_point(aes(col = nyc_data$BOROUGH)) +
-  geom_smooth(method = "lm") +
-  theme(legend.position = "bottom") +
-  ggtitle("Price of Oldest Properties sold in NYC", subtitle = "Oldest buildings in NYC") +
-  scale_y_continuous("Property Value Distribution", labels = scales::dollar) +
-  scale_x_continuous("Building Age") 
-```
-So we can see from the above graph that the building age is not a good predictor of Sale price.
-
-
-#Check current variable type
 
 ```{r, message=FALSE,warning=FALSE}
-str(data_out)
 
-#Change the Borough to Categorical
-
-data_out$BOROUGH <- as.factor(data_out$BOROUGH)
-
-#Change ZIP.CODE to categorical
-
-data_out$ZIP.CODE <- as.factor(data_out$ZIP.CODE)
-
-#Change Sale.DATE to date 
-
-data_out$SALE.DATE <- as.Date(data_out$SALE.DATE)
-
-str(data_out)
+data$GROSS.SQUARE.FEET[data$GROSS.SQUARE.FEET == 0] <- NA
 
 ```
 
+#### YEAR.BUILT
 
-###Removed Missing and Outlier Data from SALE.PRICE
-
-To remove outliers values we will use the box and whisker plot.
+For YEAR.BUILT, we replace any house with the year built before 1776 to NA's.
 
 ```{r, message=FALSE,warning=FALSE}
 
-summary(data_out)
+data$YEAR.BUILT[data$YEAR.BUILT <= 1776] <- NA
+
+```
+
+#### Remove Outliers for LAND.SQUARE.FEET and GROSS.SQUARE.FEET
 
 
+###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET
 
-#Remove sale price of 0 and NA's
-data_out <- data_out[data_out$SALE.PRICE != 0,]
-data_out <- data_out[!is.na(data_out$SALE.PRICE),]
+We will now remove the outliers for the two square feet variables.
 
-data_rm_outliers = data_out;
+```{r, message=FALSE,warning=FALSE}
+data_rm_outliers_sq_feet <- data
 
-remove_outliers <- function(x,lbound) {
+remove_outliers_sq_feet <- function(x,lbound) {
   qnt <- quantile(x, probs=c(.25, .75), na.rm = TRUE)
-  H <- 1.5 * IQR(x, na.rm = TRUE)
+  H <- IQR(x, na.rm = TRUE)
   y=x
   y[x < (qnt[1] - H/lbound)] = -999999
   y[x > (qnt[2] + H)] = -999999
@@ -490,114 +435,135 @@ remove_outliers <- function(x,lbound) {
   
 }
 
-#identify Outliers for SALE.PRICE, GROSS.SQUARE.FEET and LAND.SQAURE.FEET
-data_out$SALE.PRICE <- remove_outliers(data_rm_outliers$SALE.PRICE,4)
+data$GROSS.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$GROSS.SQUARE.FEET,4)
+data$LAND.SQUARE.FEET <- remove_outliers_sq_feet(data_rm_outliers_sq_feet$LAND.SQUARE.FEET,4)
 
-
-
-data_out <- data_out[data_out$SALE.PRICE!=-999999,]
-
-
+data <- data[data$GROSS.SQUARE.FEET!=-999999&data$LAND.SQUARE.FEET!=-999999,]
 
 ```
 
-We have removd the missing and outlier SALE.PRICE data.  When we were removing outliers we noticed that it was not removing any small values of SALE.PRICE, this was due to the fact that the minium whisker was going negative and there is no sale price that is below zero.  We made a small change where we divide the inter quartile range by 4 for the minium whisker to remove some small values of sale.price.
+The dataset now has 36762 elements.
 
-We have reduced our dataset to 46220 oberservations.
+### Boroughs
 
+Let us see which borough recorded the the most property sales and which borough is the most expensive by avg. sale price.
+```{r, message=FALSE,warning=FALSE}
+p1 <- ggplot(data = data, aes(x = `BOROUGH`)) +
+  geom_bar() +
+  ggtitle("In-Demand Borough in NYC") +
+  scale_y_continuous("# of Property Sales", labels = scales::comma) +
+  scale_x_discrete("Borough")
 
-###Removed Missing and Outlier Data from Gross.SQuare.FEET, YEAR.BUILT and LAND.SQUARE.FEET
+p2 <- ggplot(data = data, aes(x = `BOROUGH`, y = mean(`SALE.PRICE`))) +
+  geom_bar(stat = "identity") +
+  ggtitle("Most Expensive Borough in NYC", subtitle = "Avg. Property Sale Price in NYC") +
+  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
+  scale_x_discrete("Borough")
 
+grid.arrange(p1, p2, ncol = 1)
+```
 
-####LAND.SQUARE.FEET
+The plots show that Queens had the most number of property sales followed by Brooklyn. The highest average sale price is also in Queens followed by Brooklyn. This is surprising as we thought Manhattan would have the highest average sale price. So we suspect that there are some extremely expensive properties sold in Queens.
 
-We noticed there is zero values for LAND.SQUARE.FEET, we want to investigate is this an error or are there some type of properties that have zero lot size. Specfically we want to look at the what is the LAND.SQUARE.FEET for condos.
+### Neigborhoods
 
+Now that we have explored the sale price according to the boroughs, let us check for the most expensive neighborhoods.
+
+We will only take the top ten neigborhoods as it will be difficult to plot all the neighborhoods.
 
 ```{r, message=FALSE,warning=FALSE}
-#Investigate Land square feet
+dfnyc1<-as.data.frame(table(data$BOROUGH, data$NEIGHBORHOOD))
+names(dfnyc1) <- c('BOROUGH','NEIGHBORHOOD', 'Freq')
+dfnyc1 <- dfnyc1 %>% arrange(desc(Freq)) %>% head(10)
+p3<-ggplot(data = dfnyc1,aes(x=dfnyc1$NEIGHBORHOOD,y=dfnyc1$Freq,fill=dfnyc1$BOROUGH))+geom_bar(stat = "identity")+scale_y_continuous("Number of sales")+scale_x_discrete("Neighborhood")+coord_flip()
 
-sqldf('SELECT [BUILDING.CLASS.CATEGORY],COUNT(*) FROM data where [LAND.SQUARE.FEET] = 0 group by [BUILDING.CLASS.CATEGORY]')
+dfnyc2<- 
+  data %>% group_by(BOROUGH, NEIGHBORHOOD) %>% 
+  summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
+  arrange(desc(MeanSP)) %>% head(10)
 
+p4 <- ggplot(data = dfnyc2, aes(x = dfnyc2$NEIGHBORHOOD, y = dfnyc2$MeanSP, fill = dfnyc2$BOROUGH)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Most Expensive Neighborhoods in NYC", 
+          subtitle = "Top Neighborhoods by Avg Price") +
+  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
+  scale_x_discrete("Neighborhood") 
 
+grid.arrange(p3,p4,ncol=1)
 ```
 
-We can see that the only type of houses with 0 LAND.SQUARE.FEET are condos and this does not seem to be an error and requires no imputation.
+From the above graphs we can see that the most in-demand neighborhood is in Queens and the most expensive neighborhood by average price is in Little Italy in Manhattan. 
 
+### Buildings
 
-####GROSS.SQUARE.FEET
-
-For GROSS.SQUARE.FEET we replaced any 0 values with NA, our assumaption is that no house can have 0 living area.
-
+Let us explore the top ten most in-demand building class and the most expensive building class and to what borough they belong to.
 
 ```{r, message=FALSE,warning=FALSE}
+dfnyc3<-as.data.frame(table(data$BOROUGH, data$BUILDING.CLASS.CATEGORY))
+names(dfnyc3) <- c('BOROUGH','BUILDING CLASS CATEGORY', 'Freq')
+dfnyc3 <- dfnyc3 %>% arrange(desc(Freq)) %>% head(10)
+ggplot(data = dfnyc3,aes(x=dfnyc3$BOROUGH,y=dfnyc3$Freq,fill=dfnyc3$`BUILDING CLASS CATEGORY`))+geom_bar(stat = "identity",position = "dodge")+scale_y_continuous("Number of sales")+scale_x_discrete("Borough")
 
-data_out$GROSS.SQUARE.FEET[data_out$GROSS.SQUARE.FEET == 0] <- NA
 
 ```
 
-####YEAR.BUILT
+From the above diagram, it is clear that the one family dwellings are very popular in Queens and Staten Island. Condos are particularly in demand in Manhattan and in Brooklyn. 
 
-For YEAR.BUILT we replace any house with the year built before 1776 to NA's.
+Now lets take a look at the most expensive building class.
 
 ```{r, message=FALSE,warning=FALSE}
+dfnyc4<- 
+  data %>% group_by(BOROUGH,BUILDING.CLASS.CATEGORY ) %>% 
+  summarise(MeanSP = mean(`SALE.PRICE`)) %>% 
+  arrange(desc(MeanSP)) %>% head(10)
 
-data_out$YEAR.BUILT[data_out$YEAR.BUILT <= 1776] <- NA
+ggplot(data = dfnyc4, aes(x = dfnyc4$BUILDING.CLASS.CATEGORY, y = dfnyc4$MeanSP, fill = dfnyc4$BOROUGH)) +
+  geom_bar(stat = "identity") +
+  coord_flip() +
+  ggtitle("Most Expensive Buildings in NYC") +
+  scale_y_continuous("Avg Sale Price", labels = scales::dollar) +
+  scale_x_discrete("Building Type") + theme(legend.position = "bottom")
 
 ```
+From the above graph we can see that the most expensive buildings are the three-family-dwellings in Manhattan and Brooklyn.
 
 
-
-###Impute Data
+## Data Imputation
 
 
 ```{r, message=FALSE,warning=FALSE}
 
 #Analyzed Missing values
 
-aggr_plot = aggr(data_out, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data_out), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
+aggr_plot = aggr(data, col=c('navyblue','red'), numbers=TRUE, sortVars=TRUE, labels=names(data), cex.axis=.7, gap=3, ylab=c("Histogram of missing data","Pattern"))
 
 
 #remove easement columns all NA's and TOTAL.UNITS
-data_out <- data_out[,!colnames(data_out) %in% c('EASE.MENT','X','TOTAL.UNITS')]
+data <- data[,!colnames(data) %in% c('EASE.MENT','X','TOTAL.UNITS')]
 
-summary(data_out)
-
-
+summary(data)
 
 borough_list <- c('Manhattan','Queens','Bronx','Brooklyn','Staten Island')
 
 for (i in borough_list) {
-Gross <- median(data_out$GROSS.SQUARE.FEET[data_out$BOROUGH==i & !is.na(data_out$GROSS.SQUARE.FEET)])
-data_out$GROSS.SQUARE.FEET[data_out$BOROUGH==i & is.na(data_out$GROSS.SQUARE.FEET)] <- Gross
+Gross <- median(data$GROSS.SQUARE.FEET[data$BOROUGH==i & !is.na(data$GROSS.SQUARE.FEET)])
+data$GROSS.SQUARE.FEET[data$BOROUGH==i & is.na(data$GROSS.SQUARE.FEET)] <- Gross
 
-Land <- median(data_out$LAND.SQUARE.FEET[data_out$BOROUGH==i & !is.na(data_out$LAND.SQUARE.FEET)])
-data_out$LAND.SQUARE.FEET[data_out$BOROUGH==i & is.na(data_out$LAND.SQUARE.FEET)] <- Land
+Land <- median(data$LAND.SQUARE.FEET[data$BOROUGH==i & !is.na(data$LAND.SQUARE.FEET)])
+data$LAND.SQUARE.FEET[data$BOROUGH==i & is.na(data$LAND.SQUARE.FEET)] <- Land
 
-Year_Built <- median(data_out$YEAR.BUILT[data_out$BOROUGH==i & !is.na(data_out$YEAR.BUILT)])
-data_out$YEAR.BUILT[data_out$BOROUGH==i & is.na(data_out$YEAR.BUILT)] <- Year_Built
+Year_Built <- median(data$YEAR.BUILT[data$BOROUGH==i & !is.na(data$YEAR.BUILT)])
+data$YEAR.BUILT[data$BOROUGH==i & is.na(data$YEAR.BUILT)] <- Year_Built
 }
-summary(data_out$GROSS.SQUARE.FEET)
-summary(data_out$LAND.SQUARE.FEET)
-summary(data_out$YEAR.BUILT)
+summary(data$GROSS.SQUARE.FEET)
+summary(data$LAND.SQUARE.FEET)
+summary(data$YEAR.BUILT)
 
 ```
 
-We inputed the 3 columns that had some missing values and we dropped the column EASE.MENT because it had 100% missing values.  We inputed the values by taking the median value for the variable for the borough it is in,
+We imputed the 3 columns that had some missing values: GROSS.SQUARE.FEET, LAND.SQUARE.FEET and YEAR.BUILT. We imputed the values by taking the median value for the variable for the borough it is in.
 
-
-###Remove outliers for GROSS.SQUARE.FEET AND LAND.SQUARE.FEET
-
-
-```{r, message=FALSE,warning=FALSE}
-data_rm_outliers <- data_out
-
-data_out$GROSS.SQUARE.FEET <- remove_outliers(data_rm_outliers$GROSS.SQUARE.FEET,4)
-data_out$LAND.SQUARE.FEET <- remove_outliers(data_rm_outliers$LAND.SQUARE.FEET,4)
-
-data_out <- data_out[data_out$GROSS.SQUARE.FEET!=-999999&data_out$LAND.SQUARE.FEET!=-999999,]
-
-```
 
 
 ###Check Variable Distribution
@@ -610,15 +576,15 @@ Want to Check if the distrbution of SALE.PRICE is normal, if not coverted to nor
 ```{r, message=FALSE,warning=FALSE}
 
 
-plot(density(data_out$SALE.PRICE))
+plot(density(data$SALE.PRICE))
 
 #Use log transformation to change to normal distrubution
 
-plot(density(sapply(data_out$SALE.PRICE, log10)))
+plot(density(sapply(data$SALE.PRICE, log10)))
 
 #Update SALE.PRICE
 
-data_out$SALE.PRICE <- sapply(data_out$SALE.PRICE, log10)
+data$SALE.PRICE <- sapply(data$SALE.PRICE, log10)
 ```
 
 
