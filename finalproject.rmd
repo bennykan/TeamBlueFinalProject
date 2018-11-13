@@ -745,15 +745,21 @@ We chose to run the linear regression intially on all of our variables.  We will
 
 summary(LM_model)
 
+importance    <- varImp(LM_model)
+
+ggplot(importance)
 
 print(LM_model)
 
 
 ```
 
+
+The most important variables are BUILDING.CLASS.CATEGORY, NEIGHBOURHOOD, LAND.SQUARE.FEET and GROSS.SQUARE.FEET. This was generally in line with what are assumptions were and what you hear about the housing market.  It is more about the house and location then the size and age of the house.  We were a little surprised that age had little to no effect but this could be because age is sometimes hard to judge with a house that has gone through extensive renovations.
+
 All of the variables have low p-values, we can conclude our model is statistically significant.
 
-The model has a Rsquared of 0.46, this means that the only 46% of the SALE.PRICE variable variation is explained by our linear model.  This was a lower Rquared then we expected since all of our variables are shown to be significant. We will now look at the residuals plot to see if they help determine if the linear model is good or not.
+The model has a Rsquared of 0.46, this means that the only 46% of the SALE.PRICE variable variation is explained by our linear model.  This was a lower Rquared then we expected since all of our variables are shown to be significant. We will now look at the residuals plot to help determine if the linear model is good or not.
 
 
 
@@ -761,9 +767,6 @@ The model has a Rsquared of 0.46, this means that the only 46% of the SALE.PRICE
 
 ```{r, message=FALSE,warning=FALSE}
 plot(LM_model$finalModel)
-
-
-
 
 ```
 
@@ -874,6 +877,28 @@ kmeans.result <- kmeans(df, centers=4, nstart=15, iter.max = 100)
 
 ```
 
+#### Visualize Model with PCA
+
+We will use Principle Componet Analysis (PCA) to help us Visualize our clusters.  PCA works by reducing dimensoinality of the data. We want to reduce the dimensionality to 2d because it will allow us to graph the clusters. PCAcreates new columns that are linearly uncorrelated variables, and sorts thems in descending where PC1 will account for the highest variability of the data, and PC2 will be seocnd most and so on.
+
+```{r, message=FALSE,warning=FALSE}
+df_pca <- prcomp(df)
+df_out <- as.data.frame(df_pca$x)
+
+p<-ggplot(df_out,aes(x=PC1,y=PC2,color = as.factor(kmeans.result$cluster ) ))
+theme<-theme(panel.background = element_blank(),panel.border=element_rect(fill=NA),panel.grid.major = element_blank(),panel.grid.minor = element_blank(),strip.background=element_blank(),axis.text.x=element_text(colour="black"),axis.text.y=element_text(colour="black"),axis.ticks=element_line(colour="black"),plot.margin=unit(c(1,1,1,1),"line"))
+percentage <- round(df_pca$sdev / sum(df_pca$sdev) * 100, 2)
+percentage <- paste( colnames(df_out), "(", paste( as.character(percentage), "%", ")", sep="") )
+
+p<-p+geom_point()+theme+xlab(percentage[1]) + ylab(percentage[2])
+
+p
+
+```
+
+Looking at the vizualized data we can the clusters are well generlized and there is almost no overlap. Cluster 3 and 4 are almost fully homogeneous from each other. Cluster 1 and 2 seems to be some small overlapping on the bottom rigfht of cluster 1.
+
+
 #### Building LM model for each cluster
 
 We now build a linear regression model for each Cluster.
@@ -914,62 +939,120 @@ trControl = fitControl)
 
 lmmodels_output$WeightedWithin10 <- lmmodels_output$Within10 * lmmodels_output$NumberofRecords
 
+lmmodels_output$WeightedMAPE<- lmmodels_output$MAPE * lmmodels_output$NumberofRecords
+
+lmmodels_output$weightedMinMAxAccuracy<- lmmodels_output$MinMAxAccuracy * lmmodels_output$NumberofRecords
+
+
 #Weight Within10 Accuracy
 Clustered_LM_Accuracy <- sum(lmmodels_output$WeightedWithin10) / sum(lmmodels_output$NumberofRecords)
-lmmodels_output
-basic_LM_Accuracy
-Clustered_LM_Accuracy
-round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100
 
+Clustered_LM_MAPE <- sum(lmmodels_output$WeightedMAPE) / sum(lmmodels_output$NumberofRecords)
+
+Clustered_LM_MinMax <- sum(lmmodels_output$weightedMinMAxAccuracy) / sum(lmmodels_output$NumberofRecords)
+
+
+
+Final_Table <- data.frame(Model = "Basic_LM",MinMAxAccuracy = round(min_max_accuracy,4),MAPE = round(mape,4),Within10 = round(basic_LM_Accuracy,4))
+Final_Table  <- rbind(Final_Table,data.frame(Model = "Cluster_LM",MinMAxAccuracy = round(Clustered_LM_MinMax,4),MAPE = round(Clustered_LM_MAPE,4),Within10 = round(Clustered_LM_Accuracy,4)))
+
+Final_Table  <- rbind(Final_Table,data.frame(Model = "%Difference",MinMAxAccuracy = round((Clustered_LM_MinMax / min_max_accuracy)  - 1,4)*100,MAPE = round((Clustered_LM_MAPE / mape)  - 1,4)*100,Within10 = round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100))
+
+
+
+kable(Final_Table,align = 'c',caption = "Model Accuracy")
 
 ```
 
-We can see that running the linear regression model on the individual clusters increased the accuracy by `r round((Clustered_LM_Accuracy / basic_LM_Accuracy)  - 1,4)*100` %.
+
+We have created a model for each cluster, for each model we create a train and test data set based on the cluster data and ratioed on the borough variable.  For each model we calculated the same accuracy metrics.  We then create a weighted score for each accuracy metric, we do this by using the size of the cluster as the weight and times it by the accuracy metric.
+
+We compared each of the accuracy metric to the basic LM model.
+
+We observed the Cluster model was better for Mean absolute change and Percent within 10%, but it was slightly worse on Min Max Accuracy.
+
+
+###Other Models
+
+Would using a more resource intensive model improve the results significantly?
+
+
+####GBM
+
+Gradient Boosted Machine model is a boosted tree regression model.
+
+
 
 ```{r, message=FALSE,warning=FALSE}
-# # model <- "xgbTree"
-# 
-# 
-#   
-# 
-# #########################################################################
-# 
-# xgbGrid <- expand.grid(nrounds = c(1, 10),
-#                        max_depth = c(1, 4),
-#                        eta = c(.1, .4),
-#                        gamma = 0,
-#                        colsample_bytree = .7,
-#                        min_child_weight = 1,
-#                        subsample = c(.8, 1))
-# set.seed(2)
-# cctrl1 <- trainControl(method = "cv", number = 3, returnResamp = "all",
-#                        classProbs = TRUE, 
-#                        summaryFunction = twoClassSummary)
-# 
-# test_class_cv_form <- train(SALE.PRICE~. , data=train_data, 
-#                             method = "xgbTree", 
-#                        
-#                             metric = "MAE")
-# 
-# 
-# 
-# XG_model.pred <- predict(test_class_cv_form, test_data)
-# 
-# XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred )) 
-# # Check Accuracy of Model 
-# XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max))
-# XG_min_max_accuracy
-# 
-# XG_mape <- mean(abs((XG_actuals_preds$predicteds - XG_actuals_preds$actuals))/XG_actuals_preds$actuals) 
-# XG_mape
-# 
-# #Within 10%
-# XG_Within10 <- ifelse(abs((XG_actuals_preds$predicteds - XG_actuals_preds$actuals))/XG_actuals_preds$actuals>0.1,0,1)
-# 
-# XG_basic_LM_Accuracy <- mean(Within10)
-# 
-# XG_basic_LM_Accuracy
+gbm_fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 10,
+                           ## repeated ten times
+                           repeats = 10)
+
+
+gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9), 
+                        n.trees = (1:30)*1, 
+                        shrinkage = 0.1,
+                        n.minobsinnode = 20)
+
+
+set.seed(825)
+gbmFit1 <- train(SALE.PRICE ~ ., data = train_data, 
+                 method = "gbm", 
+                 trControl = gbm_fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE,
+                 tuneGrid = gbmGrid
+                 )
+
+
+
+
+gbmFit1
+
+
+XG_model.pred <- predict(gbmFit1, test_data)
+#convert SALE.PRICE back to intial values
+
+
+XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred ))
+XG_actuals_preds <- sapply(XG_actuals_preds, function(x) 10^x)
+# Check Accuracy of Model
+XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max))
+
+XG_mape <- mean(abs((XG_actuals_preds[,"predicteds"]  - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"])
+
+
+XG_Within10 <- ifelse(abs((XG_actuals_preds[,"predicteds"] - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]>0.1,0,1)
+
+XG_Within10_Accuracy <- mean(XG_Within10)
+
+
+XG_Within10_Accuracy
+
+
+Final_Table  <- rbind(Final_Table,data.frame(Model = "GBM",MinMAxAccuracy = round(XG_min_max_accuracy,4),MAPE = round(XG_mape,4),Within10 = round(XG_Within10_Accuracy,4)))
+
+kable(Final_Table)
 
 
 
 ```
+
+
+
+#Next Steps
+
+The accuracy is still well below most commercial grade Housing Estimators.  The largest on eis the zestimate model created by zillow they have a accuracy of 71% of propeties within 10%.  Next step would be to continue to refine the the model and try to increasre accuracy by gathering more data and attributes on the houses.  Some the of attributes we could look into collecting and spatial data on how close houses are to amenties / high ways / lakes / schools.  We could also see if we could get some type of data on the condition of the house.
+
+https://www.zillow.com/zestimate/#acc
+
+
+#Deployment
+
+With the current accuracy we would suggest not using this as sole model to estimate / appraise a house.  In the current configuration we would deploy it as a secondary check to help provide confirmation of the value of the house.  We could provide a estimate value on every house and in the case there is a dispute or a wide variance we can use the estimate to help make our case how much the house is worth.
+
+
+
