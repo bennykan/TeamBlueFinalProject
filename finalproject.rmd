@@ -1033,7 +1033,7 @@ Would using a more resource intensive model improve the results significantly?
 
 <!-- ``` -->
 
-We can see the GBM is much better among all 3 accuracy metrics.
+We can see the GBM is much better among all 3 accuracy metrics. 
 
 #Next Steps
 
