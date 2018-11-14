@@ -971,67 +971,65 @@ Would using a more resource intensive model improve the results significantly?
 
 #### Gradient Boosted Model (GBM)
 
-<!-- GBM stands for Gradient Boosted  model orboosted tree regression model.  GBM works by first creating a basic linear regression model,  then it calculates what examples had the largest residuals.  The boosting refers to using the records with largest residual (poor predicted values) and training a new model of those values, this process is repeated until a certain stopping creteria is met. -->
+GBM stands for Gradient Boosted  model orboosted tree regression model.  GBM works by first creating a basic linear regression model,  then it calculates what examples had the largest residuals.  The boosting refers to using the records with largest residual (poor predicted values) and training a new model of those values, this process is repeated until a certain stopping creteria is met.
 
-<!-- The Boosted tree regression model has 3 parameters: tree depth, number of trees and the learning rate. -->
+The Boosted tree regression model has 3 parameters: tree depth, number of trees and the learning rate.
 
-<!-- We used cross validation to find the optimal parameters. -->
-
-
-<!-- ```{r, message=FALSE,warning=FALSE} -->
-<!-- gbm_fitControl <- trainControl(## 10-fold CV -->
-<!--                            method = "repeatedcv", -->
-<!--                            number = 5, -->
-<!--                            ## repeated ten times -->
-<!--                            repeats = 5) -->
+We used cross validation to find the optimal parameters.
 
 
-<!-- gbmGrid <-  expand.grid(interaction.depth = c(5,9),  -->
-<!--                         n.trees = (5:10)*200,  -->
-<!--                         shrinkage = 0.1, -->
-<!--                         n.minobsinnode = 20) -->
+```{r, message=FALSE,warning=FALSE}
+gbm_fitControl <- trainControl(## 10-fold CV
+                           method = "repeatedcv",
+                           number = 5,
+                           ## repeated ten times
+                           repeats = 5)
 
 
-<!-- set.seed(825) -->
-<!-- gbmFit1 <- train(SALE.PRICE ~ ., data = train_data,  -->
-<!--                  method = "gbm",  -->
-<!--                  trControl = gbm_fitControl, -->
-<!--                  ## This last option is actually one -->
-<!--                  ## for gbm() that passes through -->
-<!--                  verbose = FALSE, -->
-<!--                  tuneGrid = gbmGrid -->
-<!--                  ) -->
-
-<!-- gbmFit1 -->
-<!-- plot(gbmFit1) -->
-
-<!-- XG_model.pred <- predict(gbmFit1, test_data) -->
-<!-- #convert SALE.PRICE back to intial values -->
+gbmGrid <-  expand.grid(interaction.depth = c(5,9),
+                        n.trees = (5:10)*200,
+                        shrinkage = 0.1,
+                        n.minobsinnode = 20)
 
 
-<!-- XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred )) -->
-<!-- XG_actuals_preds <- sapply(XG_actuals_preds, function(x) 10^x) -->
-<!-- # Check Accuracy of Model -->
-<!-- XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max)) -->
+set.seed(825)
+gbmFit1 <- train(SALE.PRICE ~ ., data = train_data,
+                 method = "gbm",
+                 trControl = gbm_fitControl,
+                 ## This last option is actually one
+                 ## for gbm() that passes through
+                 verbose = FALSE,
+                 tuneGrid = gbmGrid
+                 )
 
-<!-- XG_mape <- mean(abs((XG_actuals_preds[,"predicteds"]  - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]) -->
+gbmFit1
+plot(gbmFit1)
 
-
-<!-- XG_Within10 <- ifelse(abs((XG_actuals_preds[,"predicteds"] - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]>0.1,0,1) -->
-
-<!-- XG_Within10_Accuracy <- mean(XG_Within10) -->
-
-
-<!-- XG_Within10_Accuracy -->
-
-
-<!-- Final_Table  <- rbind(Final_Table,data.frame(Model = "GBM",MinMAxAccuracy = round(XG_min_max_accuracy,4),MAPE = round(XG_mape,4),Within10 = round(XG_Within10_Accuracy,4))) -->
-
-<!-- kable(Final_Table) -->
+XG_model.pred <- predict(gbmFit1, test_data)
+#convert SALE.PRICE back to intial values
 
 
+XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred ))
+XG_actuals_preds <- sapply(XG_actuals_preds, function(x) 10^x)
+# Check Accuracy of Model
+XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max))
 
-<!-- ``` -->
+XG_mape <- mean(abs((XG_actuals_preds[,"predicteds"]  - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"])
+
+
+XG_Within10 <- ifelse(abs((XG_actuals_preds[,"predicteds"] - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]>0.1,0,1)
+
+XG_Within10_Accuracy <- mean(XG_Within10)
+
+
+XG_Within10_Accuracy
+
+
+Final_Table  <- rbind(Final_Table,data.frame(Model = "GBM",MinMAxAccuracy = round(XG_min_max_accuracy,4),MAPE = round(XG_mape,4),Within10 = round(XG_Within10_Accuracy,4)))
+
+kable(Final_Table)
+
+```
 
 We can see the GBM is much better among all 3 accuracy metrics. 
 
