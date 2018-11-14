@@ -38,20 +38,20 @@ Variable Name                   | Description
 BOROUGH                         | The name of the borough in which the property is located                    
 NEIGHBORHOOD                    | Neighborhood name in the course of valuing properties
 BUILDING CLASS CATEGORY         | Building class descriptions
-TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                                                | primarily residential (Co-ops and condos) 3: Property with equipment owned                                                              | by a gas, telephone or electric company; 4: All other properties not                                                                    | included  
+TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                                                   | primarily residential (Co-ops and condos) 3: Property with equipment owned                                                                 | by a gas, telephone or electric company; 4: All other properties not                                                                       | included  
 BLOCK                           | Sub-division of the borough on which the real properties are located
 LOT                             | Subdivision of a block and represents the property unique location     
-EASEMENT                        | A right which allows an entity to make limited use of another's real                                                                    | property
+EASEMENT                        | A right which allows an entity to make limited use of another's real                                                                       | property
 BUILDING CLASS AT PRESENT       | Building Code. Details can be found at
                                 | https://www1.nyc.gov/assets/finance/jump/hlpbldgcode.html
-ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                                  | include the apartment number
+ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                                     | include the apartment number
 ZIP CODE                        | The property's postal code
 RESIDENTIAL UNITS               | The number of residential units at the listed property
 COMMERCIAL UNITS                | The number of commercial units at the listed property
 LAND SQUARE FEET                | The land area of the property listed in square feet
-GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                                            | surfaces of the outside walls of the building
+GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                                               | surfaces of the outside walls of the building
 YEAR BUILT                      | Year the structure on the property was built
-BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                                               | use. The first position of the Building Class is a letter that is used to                                                               | describe a general class of properties
+BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                                                  | use. The first position of the Building Class is a letter that is used to                                                                  | describe a general class of properties
 SALES PRICE                     | Price paid for the property
 SALE DATE                       | Date of property sold
 
