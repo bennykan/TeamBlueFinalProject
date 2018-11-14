@@ -808,11 +808,11 @@ basic_LM_Accuracy
 
 ```
 
-We measure the accuracy 3 ways.  The first way was to look at the min max accuracy.  This looks at the ratio of min(acutal, predicted) / max(actual,predicted), this ratio tells how close the actual and predicted where to eachother.  1 is it is exactly the predicted, 0.5 means on average the they  50% of each other. (EX: 50K Predicted, 100K actual, or 200K predicted, 100k actual).  We had a min max accuracy of `r ROUND(min_max_accuracy,4) `%
+We measure the accuracy 3 ways.  The first way was to look at the min max accuracy.  This looks at the ratio of min(acutal, predicted) / max(actual,predicted), this ratio tells how close the actual and predicted where to eachother.  1 is it is exactly the predicted, 0.5 means on average the they  50% of each other. (EX: 50K Predicted, 100K actual, or 200K predicted, 100k actual).  We had a min max accuracy of `r round(min_max_accuracy,4) `%
 
-The second way was was to look at the Mean Absolute % change, this is percentage change between the absolute difference between predicted and actual.  We had an Mean absolute % change of `r ROUND(mape,4) `%.
+The second way was was to look at the Mean Absolute % change, this is percentage change between the absolute difference between predicted and actual.  We had an Mean absolute % change of `r round(mape,4) `%.
 
-The third way to lok at what percent of the predicted were within 10% of the actual value.  We had `r ROUND(basic_LM_Accuracy,4) `%  of properties that were within 10% of the actual value.
+The third way to lok at what percent of the predicted were within 10% of the actual value.  We had `r round(basic_LM_Accuracy,4) `%  of properties that were within 10% of the actual value.
 
 ### Linear Regression After Clustering
 
@@ -987,6 +987,8 @@ We used cross validation to find the optimal parameters.
 
 
 ```{r, message=FALSE,warning=FALSE}
+#Takes at least an hour to run
+
 gbm_fitControl <- trainControl(## 10-fold CV
                            method = "repeatedcv",
                            number = 5,
