@@ -112,7 +112,7 @@ server <- function(input, output,session) {
     
     
     
-    data_up <- filter(lookup_table,ZIP.CODE == input$zip_code & NEIGHBORHOOD == input$Neighborhood & BUILDING.CLASS.CATEGORY == input$building_category)
+    data_up <- filter(LTable,ZIP.CODE == input$zip_code & NEIGHBORHOOD == input$Neighborhood & BUILDING.CLASS.CATEGORY == input$building_category)
     
     
     data_modelling <- data.frame(BLOCK = data_up$BLOCK,LOT = data_up$LOT,LAND.SQUARE.FEET = input$land_sqft,GROSS.SQUARE.FEET = input$gross_sqft,SALE.PRICE = 0,BUILDING.AGE = input$building_age,BOROUGH = data_up$ENCOD_BOROUGH,NEIGHBORHOOD = data_up$ENCOD_NEIGHBORHOOD,BUILDING.CLASS.CATEGORY = data_up$ENCOD_BUILDING.CLASS.CATEGORY,ZIP.CODE = data_up$ENCOD_ZIP.CODE,data.SALE.DATE = as.Date('2018-01-01'))
@@ -133,7 +133,7 @@ server <- function(input, output,session) {
     # Can also set the label and select items
     updateSelectInput(session, "Neighborhood",
                       label = paste("Neighborhood", length(x)),
-                      choices = filter(lookup_table,ZIP.CODE == x)$NEIGHBORHOOD,
+                      choices = filter(LTable,ZIP.CODE == x)$NEIGHBORHOOD,
                       selected = tail(x, 1)
     )
     
@@ -152,7 +152,7 @@ server <- function(input, output,session) {
     # Can also set the label and select items
     updateSelectInput(session, "building_category",
                       label = paste("Building Type", length(y)),
-                      choices = filter(lookup_table,ZIP.CODE == input$zip_code & NEIGHBORHOOD == y)$BUILDING.CLASS.CATEGORY,
+                      choices = filter(LTable,ZIP.CODE == input$zip_code & NEIGHBORHOOD == y)$BUILDING.CLASS.CATEGORY,
                       selected = tail(y, 1)
     )
     
