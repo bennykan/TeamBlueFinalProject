@@ -29,6 +29,7 @@ library(sqldf)
 library(knitr)
 library(xgboost)
 library(outliers)
+library(gbm)
 
 LTable <- read.csv("lookuptable.csv")
 
@@ -69,7 +70,7 @@ ui <- fluidPage(
                        
                        
                        selectInput("zip_code", "Zip Code",
-                                   LTable$ZIP.CODE),
+                                   LTable$ZIP.CODE[LTable$ZIP.CODE>0]),
                        selectInput("Neighborhood", "Neighborhood",
                                    levels(LTable$NEIGHBORHOOD)),
                        selectInput("building_category", "Building Category",

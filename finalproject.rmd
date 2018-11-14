@@ -916,9 +916,9 @@ for (i in levels(data_cluster$cluster)){
   train_data_c <- data_model[train_set_c,]
   test_data_C <- data_model[-train_set_c,]
   lmmodels <- train(SALE.PRICE~., data=train_data_c, method="lm",tuneLength = 50,
-metric = "RMSE",
+metric = "MAE",
 trControl = fitControl)
-  LM_model.pred <- predict(LM_model, test_data_C)
+  LM_model.pred <- predict(lmmodels, test_data_C)
 
   actuals_preds <- data.frame(cbind(actuals=test_data_C$SALE.PRICE, predicteds=LM_model.pred ))
   actuals_preds <- sapply(actuals_preds, function(x) 10^x)
@@ -943,7 +943,7 @@ lmmodels_output$WeightedMAPE<- lmmodels_output$MAPE * lmmodels_output$NumberofRe
 
 lmmodels_output$weightedMinMAxAccuracy<- lmmodels_output$MinMAxAccuracy * lmmodels_output$NumberofRecords
 
-
+lmmodels_output
 #Weight Within10 Accuracy
 Clustered_LM_Accuracy <- sum(lmmodels_output$WeightedWithin10) / sum(lmmodels_output$NumberofRecords)
 
@@ -969,7 +969,7 @@ We have created a model for each cluster, for each model we create a train and t
 
 We compared each of the accuracy metric to the basic LM model.
 
-We observed the Cluster model was better for Mean absolute change and Percent within 10%, but it was slightly worse on Min Max Accuracy.
+We observed the Cluster model was far worse in every category.  One reason could be the k means model clustered all the unique and very different properties and linear regression has a hard time predicting.  We can see there was one set of clusters that was significantly worse then the other ones.
 
 
 ###Other Models
@@ -979,20 +979,23 @@ Would using a more resource intensive model improve the results significantly?
 
 ####GBM
 
-Gradient Boosted Machine model is a boosted tree regression model.
+GBM stands for Gradient Boosted  model orboosted tree regression model.  GBM works by first creating a basic linear regression model, if then calculates the what examples had the largest residuals.  The boosting refers to use using the records with larges residual (poor predicted values) and training a new model of those values, this process is repeated until a certain stopping creteria is met.
 
+The Boosted tree regression model has 3 parameters, tree depth, number of trees and the learning rate.
+
+We used cross validation to find the optimal parameters.
 
 
 ```{r, message=FALSE,warning=FALSE}
 gbm_fitControl <- trainControl(## 10-fold CV
                            method = "repeatedcv",
-                           number = 10,
+                           number = 5,
                            ## repeated ten times
-                           repeats = 10)
+                           repeats = 5)
 
 
-gbmGrid <-  expand.grid(interaction.depth = c(1, 5, 9), 
-                        n.trees = (1:30)*1, 
+gbmGrid <-  expand.grid(interaction.depth = c(5,9), 
+                        n.trees = (5:10)*200, 
                         shrinkage = 0.1,
                         n.minobsinnode = 20)
 
@@ -1012,6 +1015,9 @@ gbmFit1 <- train(SALE.PRICE ~ ., data = train_data,
 
 gbmFit1
 
+
+
+plot(gbmFit1)
 
 XG_model.pred <- predict(gbmFit1, test_data)
 #convert SALE.PRICE back to intial values
@@ -1041,7 +1047,7 @@ kable(Final_Table)
 
 ```
 
-
+We can see the GBM is much better on all 3 accuracy metrics.
 
 #Next Steps
 
