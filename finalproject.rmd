@@ -38,20 +38,20 @@ Variable Name                   | Description
 BOROUGH                         | The name of the borough in which the property is located                    
 NEIGHBORHOOD                    | Neighborhood name in the course of valuing properties
 BUILDING CLASS CATEGORY         | Building class descriptions
-TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                                            | primarily residential (Co-ops and condos) 3: Property with equipment owned                                                          | by a gas, telephone or electric company; 4: All other properties not                                                                | included  
+TAX CLASS                       | 1: Residential property up to three units; 2: All other property that is                                                                | primarily residential (Co-ops and condos) 3: Property with equipment owned                                                              | by a gas, telephone or electric company; 4: All other properties not                                                                    | included  
 BLOCK                           | Sub-division of the borough on which the real properties are located
 LOT                             | Subdivision of a block and represents the property unique location     
-EASEMENT                        | A right which allows an entity to make limited use of another's real                                                                | property
+EASEMENT                        | A right which allows an entity to make limited use of another's real                                                                    | property
 BUILDING CLASS AT PRESENT       | Building Code. Details can be found at
                                 | https://www1.nyc.gov/assets/finance/jump/hlpbldgcode.html
-ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                              | include the apartment number
+ADDRESS                         | Street address of the property as listed on the Sales File. Coop sales                                                                  | include the apartment number
 ZIP CODE                        | The property's postal code
 RESIDENTIAL UNITS               | The number of residential units at the listed property
 COMMERCIAL UNITS                | The number of commercial units at the listed property
 LAND SQUARE FEET                | The land area of the property listed in square feet
-GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                                        | surfaces of the outside walls of the building
+GROSS SQUARE FEET               | The total area of all the floors of a building as measured from the exterior                                                            | surfaces of the outside walls of the building
 YEAR BUILT                      | Year the structure on the property was built
-BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                                           | use. The first position of the Building Class is a letter that is used to                                                           | describe a general class of properties
+BUILDING CLASS AT TIME OF SALE  | The Building Classification is used to describe a property’s constructive                                                               | use. The first position of the Building Class is a letter that is used to                                                               | describe a general class of properties
 SALES PRICE                     | Price paid for the property
 SALE DATE                       | Date of property sold
 
@@ -500,9 +500,7 @@ ggplot(data = dfnyc4, aes(x = dfnyc4$BUILDING.CLASS.CATEGORY, y = dfnyc4$MeanSP,
 ```
 From the above graph we can see that the most expensive buildings are the three-family-dwellings in Manhattan and Brooklyn.
 
-
 ## Data Imputation
-
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -692,9 +690,6 @@ cor_result_flat[abs(cor_result_flat$cor) <0.1&cor_result_flat$column=='SALE.PRIC
 
 ```
 
-
-
-
 ## Split into Training & Test Sets
 
 We split the data into 80% training data and 20% testing data, the data is balanced on the Borough variable to ensure each data is representative of the initial data set.
@@ -736,10 +731,9 @@ trControl = fitControl)
 
 We chose to run the linear regression intially on all of our variables.  We will now investigate if there is some variables we can remove that are of low signifiance.
 
-## Assess Model
+## Model Assessment
 
-
-###variable Significance
+### Variable Significance
 
 ```{r, message=FALSE,warning=FALSE}
 
@@ -761,9 +755,7 @@ All of the variables have low p-values, we can conclude our model is statistical
 
 The model has a Rsquared of 0.46, this means that the only 46% of the SALE.PRICE variable variation is explained by our linear model.  This was a lower Rquared then we expected since all of our variables are shown to be significant. We will now look at the residuals plot to help determine if the linear model is good or not.
 
-
-
-####Check Residual of Linear Model
+### Check Residual of Linear Model
 
 ```{r, message=FALSE,warning=FALSE}
 plot(LM_model$finalModel)
@@ -808,17 +800,17 @@ basic_LM_Accuracy
 
 ```
 
-We measure the accuracy 3 ways.  The first way was to look at the min max accuracy.  This looks at the ratio of min(acutal, predicted) / max(actual,predicted), this ratio tells how close the actual and predicted where to eachother.  1 is it is exactly the predicted, 0.5 means on average the they  50% of each other. (EX: 50K Predicted, 100K actual, or 200K predicted, 100k actual).  We had a min max accuracy of `r ROUND(min_max_accuracy,4) `%
+We measure the accuracy 3 ways.  The first way was to look at the min max accuracy.  This looks at the ratio of min(acutal, predicted) / max(actual,predicted), this ratio tells how close the actual and predicted where to eachother.  1 is it is exactly the predicted, 0.5 means on average the they  50% of each other. (EX: 50K Predicted, 100K actual, or 200K predicted, 100k actual).  We had a min max accuracy of `r round(min_max_accuracy,4)` %
 
-The second way was was to look at the Mean Absolute % change, this is percentage change between the absolute difference between predicted and actual.  We had an Mean absolute % change of `r ROUND(mape,4) `%.
+The second way was was to look at the Mean Absolute % change, this is percentage change between the absolute difference between predicted and actual.  We had an Mean absolute % change of `r round(mape,4)`%.
 
-The third way to lok at what percent of the predicted were within 10% of the actual value.  We had `r ROUND(basic_LM_Accuracy,4) `%  of properties that were within 10% of the actual value.
+The third way to lok at what percent of the predicted were within 10% of the actual value.  We had `r round(basic_LM_Accuracy,4)`%  of properties that were within 10% of the actual value.
 
 ### Linear Regression After Clustering
 
 We wanted to test if we could improve the accuracy of the linear regression by first clustering the data using K means and then create a linear regression model for each cluster. Our assumption is that there is different subsets of the housing market and by clustering we will identify them and create specfic models for them.
 
-####Data Normalization
+#### Data Normalization
 
 Since the K-means algorithm using distance to find the nearest point we need to ensure all the variables are on the same range.  We do this by normalizing the data.  We also need to remove our Target variable SALE.PRICE from the cluster data.
 
@@ -843,7 +835,7 @@ normalize = function(x) {
 df = as.data.frame(lapply(df, normalize))
 ```
 
-####Finding Optimal Number of Clusters (K)
+#### Finding Optimal Number of Clusters (K)
 
 Before we run the K Mean algorithm we need to find the optimal K clusters. To find the optimal number of clusters we used the Elbow method. The elbow method finds the optimal K value by running mulptiple K-Means for K from 1 to N and calculateing the Sum of Squared errors (SSE).  We then plot each SSE for each K, we then chose an optimal value of K such that it has a low SSE but further increase of K would make little improvement to the SSE. That K value would be the elbow point of the plot.
 
@@ -896,7 +888,7 @@ p
 
 ```
 
-Looking at the vizualized data we can the clusters are well generlized and there is almost no overlap. Cluster 3 and 4 are almost fully homogeneous from each other. Cluster 1 and 2 seems to be some small overlapping on the bottom rigfht of cluster 1.
+Looking at the visualized data we can see that the clusters are well generlized and there is almost no overlap. Cluster 3 and 4 are almost fully homogeneous from each other. Cluster 1 and 2 seems to be some small overlapping on the bottom right of cluster 1.
 
 
 #### Building LM model for each cluster
@@ -972,82 +964,76 @@ We compared each of the accuracy metric to the basic LM model.
 We observed the Cluster model was far worse in every category.  One reason could be the k means model clustered all the unique and very different properties and linear regression has a hard time predicting.  We can see there was one set of clusters that was significantly worse then the other ones.
 
 
-###Other Models
+### Other Models
 
 Would using a more resource intensive model improve the results significantly?
 
 
-####GBM
+#### Gradient Boosted Model (GBM)
 
-GBM stands for Gradient Boosted  model orboosted tree regression model.  GBM works by first creating a basic linear regression model, if then calculates the what examples had the largest residuals.  The boosting refers to use using the records with larges residual (poor predicted values) and training a new model of those values, this process is repeated until a certain stopping creteria is met.
+<!-- GBM stands for Gradient Boosted  model orboosted tree regression model.  GBM works by first creating a basic linear regression model,  then it calculates what examples had the largest residuals.  The boosting refers to using the records with largest residual (poor predicted values) and training a new model of those values, this process is repeated until a certain stopping creteria is met. -->
 
-The Boosted tree regression model has 3 parameters, tree depth, number of trees and the learning rate.
+<!-- The Boosted tree regression model has 3 parameters: tree depth, number of trees and the learning rate. -->
 
-We used cross validation to find the optimal parameters.
-
-
-```{r, message=FALSE,warning=FALSE}
-gbm_fitControl <- trainControl(## 10-fold CV
-                           method = "repeatedcv",
-                           number = 5,
-                           ## repeated ten times
-                           repeats = 5)
+<!-- We used cross validation to find the optimal parameters. -->
 
 
-gbmGrid <-  expand.grid(interaction.depth = c(5,9), 
-                        n.trees = (5:10)*200, 
-                        shrinkage = 0.1,
-                        n.minobsinnode = 20)
+<!-- ```{r, message=FALSE,warning=FALSE} -->
+<!-- gbm_fitControl <- trainControl(## 10-fold CV -->
+<!--                            method = "repeatedcv", -->
+<!--                            number = 5, -->
+<!--                            ## repeated ten times -->
+<!--                            repeats = 5) -->
 
 
-set.seed(825)
-gbmFit1 <- train(SALE.PRICE ~ ., data = train_data, 
-                 method = "gbm", 
-                 trControl = gbm_fitControl,
-                 ## This last option is actually one
-                 ## for gbm() that passes through
-                 verbose = FALSE,
-                 tuneGrid = gbmGrid
-                 )
+<!-- gbmGrid <-  expand.grid(interaction.depth = c(5,9),  -->
+<!--                         n.trees = (5:10)*200,  -->
+<!--                         shrinkage = 0.1, -->
+<!--                         n.minobsinnode = 20) -->
 
 
+<!-- set.seed(825) -->
+<!-- gbmFit1 <- train(SALE.PRICE ~ ., data = train_data,  -->
+<!--                  method = "gbm",  -->
+<!--                  trControl = gbm_fitControl, -->
+<!--                  ## This last option is actually one -->
+<!--                  ## for gbm() that passes through -->
+<!--                  verbose = FALSE, -->
+<!--                  tuneGrid = gbmGrid -->
+<!--                  ) -->
+
+<!-- gbmFit1 -->
+<!-- plot(gbmFit1) -->
+
+<!-- XG_model.pred <- predict(gbmFit1, test_data) -->
+<!-- #convert SALE.PRICE back to intial values -->
 
 
-gbmFit1
+<!-- XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred )) -->
+<!-- XG_actuals_preds <- sapply(XG_actuals_preds, function(x) 10^x) -->
+<!-- # Check Accuracy of Model -->
+<!-- XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max)) -->
+
+<!-- XG_mape <- mean(abs((XG_actuals_preds[,"predicteds"]  - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]) -->
 
 
+<!-- XG_Within10 <- ifelse(abs((XG_actuals_preds[,"predicteds"] - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]>0.1,0,1) -->
 
-plot(gbmFit1)
-
-XG_model.pred <- predict(gbmFit1, test_data)
-#convert SALE.PRICE back to intial values
+<!-- XG_Within10_Accuracy <- mean(XG_Within10) -->
 
 
-XG_actuals_preds <- data.frame(cbind(actuals=test_data$SALE.PRICE, predicteds=XG_model.pred ))
-XG_actuals_preds <- sapply(XG_actuals_preds, function(x) 10^x)
-# Check Accuracy of Model
-XG_min_max_accuracy <- mean (apply(XG_actuals_preds, 1, min) / apply(XG_actuals_preds, 1, max))
-
-XG_mape <- mean(abs((XG_actuals_preds[,"predicteds"]  - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"])
+<!-- XG_Within10_Accuracy -->
 
 
-XG_Within10 <- ifelse(abs((XG_actuals_preds[,"predicteds"] - XG_actuals_preds[,"actuals"]))/XG_actuals_preds[,"actuals"]>0.1,0,1)
+<!-- Final_Table  <- rbind(Final_Table,data.frame(Model = "GBM",MinMAxAccuracy = round(XG_min_max_accuracy,4),MAPE = round(XG_mape,4),Within10 = round(XG_Within10_Accuracy,4))) -->
 
-XG_Within10_Accuracy <- mean(XG_Within10)
-
-
-XG_Within10_Accuracy
-
-
-Final_Table  <- rbind(Final_Table,data.frame(Model = "GBM",MinMAxAccuracy = round(XG_min_max_accuracy,4),MAPE = round(XG_mape,4),Within10 = round(XG_Within10_Accuracy,4)))
-
-kable(Final_Table)
+<!-- kable(Final_Table) -->
 
 
 
-```
+<!-- ``` -->
 
-We can see the GBM is much better on all 3 accuracy metrics.
+We can see the GBM is much better among all 3 accuracy metrics.
 
 #Next Steps
 
@@ -1059,6 +1045,8 @@ https://www.zillow.com/zestimate/#acc
 #Deployment
 
 With the current accuracy we would suggest not using this as sole model to estimate / appraise a house.  In the current configuration we would deploy it as a secondary check to help provide confirmation of the value of the house.  We could provide a estimate value on every house and in the case there is a dispute or a wide variance we can use the estimate to help make our case how much the house is worth.
+
+We created a user interface where the user can input the zip code, neighborhood, property type, square footage and the property age and then the model will predict the estimated price.
 
 
 
