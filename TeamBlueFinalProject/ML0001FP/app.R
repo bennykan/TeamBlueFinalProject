@@ -30,6 +30,10 @@ library(knitr)
 library(xgboost)
 library(outliers)
 
+LTable <- read.csv("lookuptable.csv")
+
+LTable$ZIPCODE <- LTable$ZIP.CODE
+
 # Define UI for application that draws a histogram
 ui <- fluidPage(
   
@@ -62,20 +66,23 @@ ui <- fluidPage(
                      div(
                        id = "form",
                        
-                       selectInput("borough_type", "Borough",
-                                   c("1",  "2", "3", "4")),
-                       selectInput("NEIGHBORHOOD_type", "NEIGHBORHOOD",
-                                   c("1",  "2", "3", "4")),
+                       
+                       
+                       selectInput("zip_code", "Zip Code",
+                                   LTable$ZIP.CODE),
+                       selectInput("Neighborhood", "Neighborhood",
+                                   levels(LTable$NEIGHBORHOOD)),
                        selectInput("building_category", "Building Category",
-                                   c("1",  "2", "3", "4")),
-                       selectInput("tax_class", "Tax Class",
-                                   c("1",  "2", "3", "4")),
-                       textInput("zip_code", "Zip Code"),
+                                   ""),
+                       numericInput("gross_sqft", 'Living Area in Sqft',1500),
+                       numericInput("land_sqft", 'Lot SiZe in Sqft',20000),
+                       numericInput("building_age", "Building Age (Years)",25),
                        actionButton("submit", "Calculate Price", class = "btn-primary")
+                       
                      )
                    ),
                    mainPanel(
-                     htmlOutput("predictedprice")
+                     htmlOutput("predictedprice") 
                    )
                  )
                  )
@@ -90,7 +97,71 @@ ui <- fluidPage(
 )
 
 # Define server logic required to draw a histogram
-server <- function(input, output) {
+server <- function(input, output,session) {
+  
+  house_value <- eventReactive(input$submit, {
+    model <- readRDS("gbmFit1.rds")
+    
+    validate(
+      need(input$zip_code, 'Select Your zip code'),
+      need(input$Neighborhood != '', 'Select your Neighborhood.'),
+      need(input$building_category != '', 'Select your Housing Type')
+    )
+    
+    
+    
+    
+    
+    data_up <- filter(lookup_table,ZIP.CODE == input$zip_code & NEIGHBORHOOD == input$Neighborhood & BUILDING.CLASS.CATEGORY == input$building_category)
+    
+    
+    data_modelling <- data.frame(BLOCK = data_up$BLOCK,LOT = data_up$LOT,LAND.SQUARE.FEET = input$land_sqft,GROSS.SQUARE.FEET = input$gross_sqft,SALE.PRICE = 0,BUILDING.AGE = input$building_age,BOROUGH = data_up$ENCOD_BOROUGH,NEIGHBORHOOD = data_up$ENCOD_NEIGHBORHOOD,BUILDING.CLASS.CATEGORY = data_up$ENCOD_BUILDING.CLASS.CATEGORY,ZIP.CODE = data_up$ENCOD_ZIP.CODE,data.SALE.DATE = as.Date('2018-01-01'))
+    
+    predict_data <- predict(model, data_modelling)
+    
+    predict_data <- round(10^predict_data,0)
+    
+    
+  })
+  
+  
+  observe({
+    x <- input$zip_code
+    
+    if (is.null(x))
+      x <- character(0)
+    # Can also set the label and select items
+    updateSelectInput(session, "Neighborhood",
+                      label = paste("Neighborhood", length(x)),
+                      choices = filter(lookup_table,ZIP.CODE == x)$NEIGHBORHOOD,
+                      selected = tail(x, 1)
+    )
+    
+    
+    
+    
+  })
+  
+  observe({
+    
+    
+    y <- input$Neighborhood
+    
+    if (is.null(y))
+      y <- character(0)
+    # Can also set the label and select items
+    updateSelectInput(session, "building_category",
+                      label = paste("Building Type", length(y)),
+                      choices = filter(lookup_table,ZIP.CODE == input$zip_code & NEIGHBORHOOD == y)$BUILDING.CLASS.CATEGORY,
+                      selected = tail(y, 1)
+    )
+    
+    
+    
+  })
+  
+  
+  
   
   output$Purpose <- renderText({
     "App Description"
@@ -102,7 +173,14 @@ server <- function(input, output) {
   
   output$predictedprice <- renderUI({
     
-    HTML(paste("Predicted Price Value Here", "Summary Text Here", sep = '<br/>'))
+    validate(
+      need(input$zip_code, 'Select Your zip code'),
+      need(input$Neighborhood != '', 'Select your Neighborhood.'),
+      need(input$building_category != '', 'Select your Housing Type')
+    )
+    
+    HTML(paste(house_value(), "Summary Text Here", sep = '<br/>'))
+    
   })
   
   output$text <- renderUI({
