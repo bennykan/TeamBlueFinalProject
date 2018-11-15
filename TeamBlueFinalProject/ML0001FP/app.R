@@ -33,8 +33,15 @@ library(sqldf)
 library(knitr)
 library(xgboost)
 library(outliers)
+library(scales)
 
 LTable <- read.csv("lookuptable.csv")
+
+graph_table <- read.csv("graphfile.csv")
+
+graph_table$SALE.DATE <- as.Date(graph_table$SALE.DATE)
+
+graph_table$YearMonth <- as.Date(graph_table$YearMonth)
 
 LTable$ZIPCODE <- LTable$ZIP.CODE
 
@@ -88,7 +95,7 @@ shinyApp(
             HTML("<p><h1>Housing Price Predictor</h1></p></br><h4 style='color:red;'>Provide value for the required fields to predict the price </h4>"),
             htmlOutput("predictedprice") ,
             HTML("</br>"),
-            plotOutput("PriceTrend",height= "800px",width = "1000px")
+            plotOutput("PriceTrend",height= "500px",width = "500px")
           )
         )
       ),
@@ -127,11 +134,15 @@ shinyApp(
       
       predict_data <- round(10^predict_data,0)
       
-      
+      predict_data
     })
     
     
+    plot_histo <- eventReactive(input$submit, {
+      test <- filter(graph_table,NEIGHBORHOOD==input$Neighborhood)
+      
     
+    })
     output$predictedprice <- renderUI({
       
 
@@ -141,12 +152,21 @@ shinyApp(
         #need(input$building_category != '', 'Select your Housing Type')
       #)
       
-      HTML(paste("<h1> Predicted valuation is <span style='color:green;font-weight:bold;padding:10px 10px;size:24px'>",house_value()," USD</span></h1>", "", sep = ''))
+      HTML(paste("<h1> Predicted valuation is <span style='color:green;font-weight:bold;padding:10px 10px;size:24px'>",house_value()," USD</span><br><br> Neighborhood Price Trend </br></h1>", "", sep = ''))
       
       
     })
     
     output$PriceTrend <- renderPlot({
+      
+      
+      ggplot(data = plot_histo(),
+             aes(YearMonth, SALE.PRICE)) +
+        stat_summary(fun.y = median, geom = "bar") +
+        scale_y_continuous(labels = comma)+
+        theme_classic() + labs(title = plot_histo()$NEIGHBORHOOD)+scale_x_date(labels = date_format("%Y-%m"))
+      
+      
       
     })
     
