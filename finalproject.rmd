@@ -871,7 +871,7 @@ kmeans.result <- kmeans(df, centers=4, nstart=15, iter.max = 100)
 
 #### Visualize Model with PCA
 
-We will use Principle Componet Analysis (PCA) to help us Visualize our clusters.  PCA works by reducing dimensoinality of the data. We want to reduce the dimensionality to 2d because it will allow us to graph the clusters. PCAcreates new columns that are linearly uncorrelated variables, and sorts thems in descending where PC1 will account for the highest variability of the data, and PC2 will be seocnd most and so on.
+We will use Principle Componet Analysis (PCA) to help us Visualize our clusters.  PCA works by reducing dimensoinality of the data. We want to reduce the dimensionality to 2d because it will allow us to graph the clusters. PCA creates new columns that are linearly uncorrelated variables, and sorts thems in descending where PC1 will account for the highest variability of the data, and PC2 will be seocnd most and so on.
 
 ```{r, message=FALSE,warning=FALSE}
 df_pca <- prcomp(df)
@@ -1035,16 +1035,16 @@ We can see the GBM is much better among all 3 accuracy metrics.
 
 #Next Steps
 
-The accuracy is still well below most commercial grade Housing Estimators.  The largest on eis the zestimate model created by zillow they have a accuracy of 71% of propeties within 10%.  Next step would be to continue to refine the the model and try to increasre accuracy by gathering more data and attributes on the houses.  Some the of attributes we could look into collecting and spatial data on how close houses are to amenties / high ways / lakes / schools.  We could also see if we could get some type of data on the condition of the house.
+The accuracy is still well below most commercial grade Housing Estimators.  The largest one is the zestimate model created by zillow where the model achieved an accuracy of 71% of the properties within 10% of the actual sale prices.  Next step would be to continue to refine the model and try to increase the accuracy by gathering more data and attributes on the properties.  Some the of attributes we could look into collecting and spatial data on how close houses are amenties / highways / lakes / schools.  We could also see if we could get data that reflects the property conditions.
 
 https://www.zillow.com/zestimate/#acc
 
 
 #Deployment
 
-With the current accuracy we would suggest not using this as sole model to estimate / appraise a house.  In the current configuration we would deploy it as a secondary check to help provide confirmation of the value of the house.  We could provide a estimate value on every house and in the case there is a dispute or a wide variance we can use the estimate to help make our case how much the house is worth.
+With the current accuracy we would suggest not using this as the sole model to estimate / appraise properties.  In the current configuration, we would deploy it as a secondary check to help provide confirmation of the property values.  We could provide an estimated value on every property and in the case there is a dispute or a wide variance, we can use the estimate to help make our case how much the property is worth.
 
-We created a user interface where the user can input the zip code, neighborhood, property type, square footage and the property age and then the model will predict the estimated price.
+To help the clients better use the prediction model, we created a user interface where the user can input the zip code, neighborhood, property type, square footage and the property age and then the model will predict the estimated price. Note that the model used in the app is Gradient Boosted Model (GBM) which gives the best model accuracy among the three.
 
 
 
