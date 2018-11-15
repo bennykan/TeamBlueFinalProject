@@ -34,6 +34,7 @@ library(knitr)
 library(xgboost)
 library(outliers)
 library(scales)
+library(gbm)
 
 LTable <- read.csv("lookuptable.csv")
 
@@ -71,7 +72,7 @@ shinyApp(
     shinyjs::useShinyjs(),
     shinyjs::inlineCSS(appCSS),
     
-    titlePanel("Property Value Prediction Using Clustering and Linear Regression - Automated Valuation Model (AVM)"),
+    titlePanel("Property Value Prediction Using GBM - Automated Valuation Model (AVM)"),
     
     tabsetPanel(
       tabPanel("Predict Price",
